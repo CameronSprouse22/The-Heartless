@@ -1,0 +1,244 @@
+package com.heartless.service;
+
+import com.heartless.model.Card;
+import com.heartless.model.GameObject;
+import com.heartless.model.Player;
+import com.heartless.model.enums.GameStatusEnum;
+import com.heartless.model.enums.PlayerStatusEnum;
+import org.springframework.stereotype.Service;
+
+import java.security.SecureRandom;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Core game management: create games, invite players, start games.
+ */
+@Service
+public class GameService {
+
+    private static final String CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final int CODE_LENGTH = 6;
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private final GameStore gameStore;
+    private final InvitationService invitationService;
+    private final TraitorSelectionService traitorSelectionService;
+    private final CardAssignmentService cardAssignmentService;
+
+    // Maps playerCode -> { gameCode, playerId }
+    private final ConcurrentHashMap<String, String[]> playerCodeMap = new ConcurrentHashMap<>();
+
+    public GameService(GameStore gameStore, InvitationService invitationService,
+                       TraitorSelectionService traitorSelectionService,
+                       CardAssignmentService cardAssignmentService) {
+        this.gameStore = gameStore;
+        this.invitationService = invitationService;
+        this.traitorSelectionService = traitorSelectionService;
+        this.cardAssignmentService = cardAssignmentService;
+    }
+
+    public Map<String, Object> createGame(String playerName) {
+        String gameCode = generateGameCode();
+        GameObject game = new GameObject(gameCode);
+
+        Player vip = new Player(playerName, playerName.toLowerCase() + "@host.local", null);
+        vip.setStatus(PlayerStatusEnum.ACTIVE);
+        game.addPlayer(vip);
+
+        gameStore.putGame(gameCode, game);
+
+        String playerCode = UUID.randomUUID().toString();
+        playerCodeMap.put(playerCode, new String[]{gameCode, vip.getId()});
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("gameId", game.getGameId());
+        result.put("gameCode", gameCode);
+        result.put("playerCode", playerCode);
+        result.put("player", vip);
+        return result;
+    }
+
+    public Map<String, Object> invitePlayer(String gameCode, String playerCode, String name, String contact) {
+        GameObject game = getGameOrThrow(gameCode);
+        validateVip(game, playerCode);
+        validateNoDuplicateContact(game, contact);
+
+        String email = contact.contains("@") ? contact : null;
+        String phone = contact.contains("@") ? null : contact;
+        Player player = new Player(name, email, phone);
+
+        synchronized (game) {
+            game.addPlayer(player);
+        }
+
+        invitationService.sendInvitation(contact, gameCode);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("playerId", player.getId());
+        result.put("name", player.getName());
+        result.put("contact", contact);
+        result.put("contactType", contact.contains("@") ? "EMAIL" : "SMS");
+        result.put("status", player.getStatus().name());
+        result.put("invitationSent", true);
+        return result;
+    }
+
+    public GameObject getGameOrThrow(String gameCode) {
+        GameObject game = gameStore.getGame(gameCode);
+        if (game == null) {
+            throw new IllegalArgumentException("Game not found: " + gameCode);
+        }
+        return game;
+    }
+
+    public Map<String, Object> getGameState(String gameCode, String playerCode) {
+        GameObject game = getGameOrThrow(gameCode);
+
+        String playerId = getPlayerId(playerCode);
+        if (playerId == null || game.findPlayerById(playerId) == null) {
+            throw new SecurityException("Player not in this game");
+        }
+
+        Map<String, Object> state = new HashMap<>();
+        state.put("gameId", game.getGameId());
+        state.put("gameCode", game.getGameIdCode());
+        state.put("isGameActive", game.isGameActive());
+        state.put("gameStatus", game.getGameStatus().name());
+        state.put("currentStage", game.getCurrentStage().name());
+        state.put("round", game.getRound());
+        state.put("currentTask", game.getCurrentTask());
+        state.put("playerCount", game.getActivePlayerCount());
+        state.put("startGameTime", game.getStartGameTime());
+        state.put("endGameTime", game.getEndGameTime());
+        state.put("players", buildPublicPlayerList(game));
+        return state;
+    }
+
+    private List<Map<String, Object>> buildPublicPlayerList(GameObject game) {
+        return game.getPlayerList().stream()
+                .filter(p -> p.getStatus() != PlayerStatusEnum.REMOVED)
+                .map(p -> {
+                    Map<String, Object> pm = new HashMap<>();
+                    pm.put("id", p.getId());
+                    pm.put("name", p.getName());
+                    pm.put("status", p.getStatus().name());
+                    pm.put("isDead", p.isDead());
+                    return pm;
+                })
+                .toList();
+    }
+
+    public Map<String, Object> startGame(String gameCode, String playerCode) {
+        GameObject game = getGameOrThrow(gameCode);
+        validateVip(game, playerCode);
+
+        List<Player> activePlayers = game.getPlayerList().stream()
+                .filter(p -> p.getStatus() == PlayerStatusEnum.ACTIVE)
+                .toList();
+
+        int activeCount = activePlayers.size();
+        if (activeCount < 4) {
+            throw new IllegalStateException("Need at least 4 active players to start (currently " + activeCount + ")");
+        }
+
+        synchronized (game) {
+            game.transitionToStart();
+            assignRoles(activePlayers, activeCount);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("gameStatus", game.getGameStatus().name());
+        result.put("currentStage", game.getCurrentStage().name());
+        result.put("playerCount", activeCount);
+        result.put("message", "Game started! Roles have been assigned.");
+        return result;
+    }
+
+    private void assignRoles(List<Player> activePlayers, int activeCount) {
+        Set<Integer> traitorIndices = TraitorSelectionService.selectTraitorIndices(activeCount, new SecureRandom());
+        for (int idx : traitorIndices) {
+            activePlayers.get(idx).setTraitor(true);
+        }
+        Map<Player, Card> cardAssignments = cardAssignmentService.assignCards(activePlayers);
+        for (Map.Entry<Player, Card> entry : cardAssignments.entrySet()) {
+            entry.getKey().setCard(entry.getValue());
+        }
+    }
+
+    public String getPlayerId(String playerCode) {
+        String[] info = playerCodeMap.get(playerCode);
+        return info != null ? info[1] : null;
+    }
+
+    public String getGameCodeForPlayer(String playerCode) {
+        String[] info = playerCodeMap.get(playerCode);
+        return info != null ? info[0] : null;
+    }
+
+    public void registerPlayerCode(String playerCode, String gameCode, String playerId) {
+        playerCodeMap.put(playerCode, new String[]{gameCode, playerId});
+    }
+
+    /**
+     * Resolve a player by name within a game. Returns existing playerCode or creates one.
+     */
+    public Map<String, Object> resolvePlayerByName(String gameCode, String playerName) {
+        GameObject game = getGameOrThrow(gameCode);
+        Player player = game.findPlayerByName(playerName);
+        if (player == null) {
+            throw new IllegalArgumentException("Player not found: " + playerName);
+        }
+        String existingCode = findPlayerCodeByPlayerId(player.getId());
+        if (existingCode == null) {
+            existingCode = UUID.randomUUID().toString();
+            playerCodeMap.put(existingCode, new String[]{gameCode, player.getId()});
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("playerCode", existingCode);
+        result.put("playerId", player.getId());
+        result.put("playerName", player.getName());
+        result.put("isTraitor", player.isTraitor());
+        result.put("isDead", player.isDead());
+        return result;
+    }
+
+    private String findPlayerCodeByPlayerId(String playerId) {
+        for (Map.Entry<String, String[]> entry : playerCodeMap.entrySet()) {
+            if (entry.getValue()[1].equals(playerId)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    private void validateVip(GameObject game, String playerCode) {
+        String playerId = getPlayerId(playerCode);
+        Player vip = game.getVip();
+        if (vip == null || !vip.getId().equals(playerId)) {
+            throw new IllegalStateException("Only the VIP can perform this action");
+        }
+    }
+
+    private void validateNoDuplicateContact(GameObject game, String contact) {
+        boolean exists = game.getPlayerList().stream().anyMatch(p -> {
+            String playerContact = p.getContact();
+            return playerContact != null && playerContact.equalsIgnoreCase(contact);
+        });
+        if (exists) {
+            throw new IllegalStateException("Player with this contact already invited");
+        }
+    }
+
+    private String generateGameCode() {
+        StringBuilder sb = new StringBuilder(CODE_LENGTH);
+        for (int i = 0; i < CODE_LENGTH; i++) {
+            sb.append(CODE_CHARS.charAt(RANDOM.nextInt(CODE_CHARS.length())));
+        }
+        String code = sb.toString();
+        if (gameStore.containsGame(code)) {
+            return generateGameCode();
+        }
+        return code;
+    }
+}
