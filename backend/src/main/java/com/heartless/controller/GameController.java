@@ -23,6 +23,16 @@ public class GameController {
         this.gameService = gameService;
     }
 
+    @PostMapping("/games/test-setup")
+    public ResponseEntity<Map<String, Object>> createTestGame() {
+        try {
+            Map<String, Object> result = gameService.createTestGame();
+            return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/games")
     public ResponseEntity<Map<String, Object>> createGame(@RequestBody Map<String, String> body) {
         String playerName = body.get("playerName");
@@ -120,32 +130,43 @@ public class GameController {
             }
 
             List<Map<String, Object>> menuItems = new java.util.ArrayList<>();
-            // Traitor Chat: visible for ALL players (security deferred)
-            menuItems.add(Map.of("id", "traitor-chat", "label", "Traitor Chat", "enabled", true, "visible", true));
-            // All Chat: visible only if alive
-            if (!player.isDead()) {
-                menuItems.add(Map.of("id", "all-chat", "label", "All Chat", "enabled", true, "visible", true));
-            }
-            // Banish Vote: always visible, enabled based on game state
-            menuItems.add(Map.of("id", "banish-vote", "label", "Banish Vote", "enabled", false, "visible", true));
-            // Murder Vote: visible only if traitor
-            if (player.isTraitor()) {
-                menuItems.add(Map.of("id", "murder-vote", "label", "Murder Vote", "enabled", false, "visible", true));
-            }
-            // Individual Chat: visible if alive
-            if (!player.isDead()) {
-                menuItems.add(Map.of("id", "individual-chat", "label", "Individual Chat", "enabled", true, "visible", true));
-            }
-            // Dead Players Chat: visible if dead
+            com.heartless.model.MenuControl mc = game.getMenuControl();
+
+            // Traitor Chat
+            menuItems.add(Map.of("id", "traitor-chat", "label", "Traitor Chat",
+                    "enabled", mc.isTraitorChatEnabled(), "visible", true));
+            // All Chat
+            menuItems.add(Map.of("id", "all-chat", "label", "All Chat",
+                    "enabled", mc.isAllChatEnabled() && !player.isDead(), "visible", !player.isDead()));
+            // Banish Vote
+            menuItems.add(Map.of("id", "banish-vote", "label", "Banish Vote",
+                    "enabled", mc.isBanishVoteEnabled() && !player.isDead(), "visible", true));
+            // Murder Vote
+            menuItems.add(Map.of("id", "murder-vote", "label", "Murder Vote",
+                    "enabled", mc.isMurderVoteEnabled() && !player.isDead(), "visible", !player.isDead()));
+            // Individual Chat
+            menuItems.add(Map.of("id", "individual-chat", "label", "Individual Chat",
+                    "enabled", mc.isIndividualChatEnabled() && !player.isDead(), "visible", !player.isDead()));
+            // Dead Players Chat
             if (player.isDead()) {
-                menuItems.add(Map.of("id", "dead-chat", "label", "Dead Chat", "enabled", true, "visible", true));
+                menuItems.add(Map.of("id", "dead-chat", "label", "Dead Chat",
+                        "enabled", true, "visible", true));
             }
-            // Stubs
-            menuItems.add(Map.of("id", "actions", "label", "Actions", "enabled", false, "visible", true));
-            menuItems.add(Map.of("id", "game-logs", "label", "Game Logs", "enabled", false, "visible", true));
+            // Actions
+            menuItems.add(Map.of("id", "actions", "label", "Actions",
+                    "enabled", mc.isActionsEnabled(), "visible", true));
+            // Game Logs
+            menuItems.add(Map.of("id", "game-logs", "label", "Game Logs",
+                    "enabled", mc.isGameLogsEnabled(), "visible", true));
+            // Game Options
+            menuItems.add(Map.of("id", "game-options", "label", "Game Options",
+                    "enabled", mc.isGameOptionsEnabled(), "visible", true));
 
             Map<String, Object> result = new HashMap<>();
             result.put("gameStatus", game.getGameStatus().name());
+            result.put("round", game.getRound());
+            result.put("currentTask", game.getCurrentTask());
+            result.put("statusString", deriveStatusString(game));
             result.put("playerName", player.getName());
             result.put("isDead", player.isDead());
             result.put("isTraitor", player.isTraitor());
@@ -168,6 +189,16 @@ public class GameController {
         playerMap.put("status", player.getStatus().name());
         response.put("player", playerMap);
         return response;
+    }
+
+    private String deriveStatusString(GameObject game) {
+        switch (game.getGameStatus()) {
+            case INIT: return "Lobby";
+            case START: return "Round " + game.getRound();
+            case END: return "Final Round";
+            case OVER: return "Game Over";
+            default: return game.getGameStatus().name();
+        }
     }
 
     @GetMapping("/games/{gameCode}/round")

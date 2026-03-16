@@ -1,6 +1,7 @@
 package com.heartless.event;
 
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 
 /**
  * Pre-vote event — handles pre-vote discussion and preparation.
@@ -30,6 +31,16 @@ public class PreVoteEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
-        // Stub: pre-vote discussion phase
+        game.setMenuControl(setMenuItems());
+    }
+
+    @Override
+    public MenuControl setMenuItems() {
+        MenuControl mc = new MenuControl();
+        mc.setAllChatEnabled(true);
+        mc.setTraitorChatEnabled(true);
+        mc.setIndividualChatEnabled(true);
+        mc.setGameLogsEnabled(true);
+        return mc;
     }
 }

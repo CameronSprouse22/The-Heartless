@@ -1,9 +1,10 @@
 package com.heartless.event;
 
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 
 /**
- * Murder event — handles the traitors' murder phase.
+ * Murder event — handles the murder voting phase.
  */
 public class MurderEvent implements EventObjectInterface {
 
@@ -30,6 +31,14 @@ public class MurderEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
-        // Stub: murder vote and resolution
+        game.setMenuControl(setMenuItems());
+    }
+
+    @Override
+    public MenuControl setMenuItems() {
+        MenuControl mc = new MenuControl();
+        mc.setMurderVoteEnabled(true);
+        mc.setTraitorChatEnabled(true);
+        return mc;
     }
 }

@@ -1,6 +1,7 @@
 package com.heartless.event;
 
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 
 /**
  * Mini-game event — handles the challenge/mini-game phase.
@@ -30,6 +31,16 @@ public class MiniGameEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
-        // Stub: mini-game execution
+        game.setMenuControl(setMenuItems());
+    }
+
+    @Override
+    public MenuControl setMenuItems() {
+        MenuControl mc = new MenuControl();
+        mc.setActionsEnabled(true);
+        mc.setAllChatEnabled(true);
+        mc.setTraitorChatEnabled(true);
+        mc.setIndividualChatEnabled(true);
+        return mc;
     }
 }

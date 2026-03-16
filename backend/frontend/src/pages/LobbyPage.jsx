@@ -97,8 +97,7 @@ function LobbyPage() {
         />
       )}
 
-      {activeCount >= 1 && (
-        <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+      <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
           {!showAddPlayer ? (
             <button
               onClick={() => setShowAddPlayer(true)}
@@ -144,7 +143,6 @@ function LobbyPage() {
             </form>
           )}
         </div>
-      )}
 
       <div style={{ marginTop: '1rem' }}>
         <button

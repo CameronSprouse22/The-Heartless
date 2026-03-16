@@ -1,6 +1,7 @@
 package com.heartless.event;
 
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 
 /**
  * Tie-break event — resolves ties in the banish vote.
@@ -30,6 +31,14 @@ public class TieBreakEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
-        // Stub: tie-break resolution
+        game.setMenuControl(setMenuItems());
+    }
+
+    @Override
+    public MenuControl setMenuItems() {
+        MenuControl mc = new MenuControl();
+        mc.setBanishVoteEnabled(true);
+        mc.setAllChatEnabled(true);
+        return mc;
     }
 }

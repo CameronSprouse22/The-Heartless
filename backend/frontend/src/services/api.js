@@ -27,6 +27,12 @@ export function createGame(playerName) {
   });
 }
 
+export function createTestGame() {
+  return fetchJson('/games/test-setup', {
+    method: 'POST',
+  });
+}
+
 export function getGameState(gameCode, playerCode) {
   return fetchJson(`/games/${gameCode}`, {
     headers: authHeader(playerCode),

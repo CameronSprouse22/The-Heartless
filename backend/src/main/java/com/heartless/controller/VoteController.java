@@ -73,7 +73,7 @@ public class VoteController {
         try {
             var result = votingService.getMurderCandidates(gameCode, playerId);
             return ResponseEntity.ok(result);
-        } catch (SecurityException e) {
+        } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
@@ -97,7 +97,7 @@ public class VoteController {
         try {
             var result = votingService.castMurderVote(gameCode, playerId, (List<String>) targetIds);
             return ResponseEntity.ok(result);
-        } catch (SecurityException e) {
+        } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

@@ -1,6 +1,7 @@
 package com.heartless.event;
 
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 
 /**
  * Recruit event — traitors may attempt to recruit a faithful player.
@@ -30,6 +31,15 @@ public class RecruitEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
-        // Stub: recruitment attempt
+        game.setMenuControl(setMenuItems());
+    }
+
+    @Override
+    public MenuControl setMenuItems() {
+        MenuControl mc = new MenuControl();
+        mc.setTraitorChatEnabled(true);
+        mc.setIndividualChatEnabled(true);
+        mc.setActionsEnabled(true);
+        return mc;
     }
 }

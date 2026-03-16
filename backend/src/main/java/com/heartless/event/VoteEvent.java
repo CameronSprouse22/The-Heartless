@@ -1,6 +1,7 @@
 package com.heartless.event;
 
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 
 /**
  * Vote event — handles the banishment voting phase.
@@ -30,6 +31,15 @@ public class VoteEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
-        // Stub: banish vote collection and tally
+        game.setMenuControl(setMenuItems());
+    }
+
+    @Override
+    public MenuControl setMenuItems() {
+        MenuControl mc = new MenuControl();
+        mc.setBanishVoteEnabled(true);
+        mc.setAllChatEnabled(true);
+        mc.setTraitorChatEnabled(true);
+        return mc;
     }
 }

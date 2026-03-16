@@ -230,6 +230,44 @@ public class GameService {
         }
     }
 
+    /**
+     * Creates a test game with 7 hardcoded players (1@gmail.com through 7@gmail.com),
+     * all set to ACTIVE status so the game can be started immediately.
+     */
+    public Map<String, Object> createTestGame() {
+        String gameCode = generateGameCode();
+        GameObject game = new GameObject(gameCode);
+
+        List<Map<String, Object>> playerInfoList = new ArrayList<>();
+
+        for (int i = 1; i <= 7; i++) {
+            String name = "Player " + i;
+            String email = i + "@gmail.com";
+            Player player = new Player(name, email, null);
+            player.setStatus(PlayerStatusEnum.ACTIVE);
+            game.addPlayer(player);
+
+            String playerCode = UUID.randomUUID().toString();
+            playerCodeMap.put(playerCode, new String[]{gameCode, player.getId()});
+
+            Map<String, Object> info = new HashMap<>();
+            info.put("playerCode", playerCode);
+            info.put("playerId", player.getId());
+            info.put("name", name);
+            info.put("email", email);
+            playerInfoList.add(info);
+        }
+
+        gameStore.putGame(gameCode, game);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("gameId", game.getGameId());
+        result.put("gameCode", gameCode);
+        result.put("players", playerInfoList);
+        result.put("vipPlayerCode", playerInfoList.get(0).get("playerCode"));
+        return result;
+    }
+
     private String generateGameCode() {
         StringBuilder sb = new StringBuilder(CODE_LENGTH);
         for (int i = 0; i < CODE_LENGTH; i++) {

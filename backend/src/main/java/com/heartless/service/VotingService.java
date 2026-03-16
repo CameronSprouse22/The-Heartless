@@ -144,12 +144,12 @@ public class VotingService {
         GameObject game = getGameOrThrow(gameCode);
         Player voter = getPlayerOrThrow(game, playerId);
 
-        if (!voter.isTraitor()) {
-            throw new SecurityException("Only traitors can access murder vote");
+        if (voter.isDead()) {
+            throw new IllegalStateException("Dead players cannot vote");
         }
 
         List<Map<String, Object>> candidates = game.getPlayerList().stream()
-                .filter(p -> p.getStatus() == PlayerStatusEnum.ACTIVE && !p.isDead() && !p.isTraitor())
+                .filter(p -> p.getStatus() == PlayerStatusEnum.ACTIVE && !p.isDead() && !p.getId().equals(playerId))
                 .map(p -> {
                     Map<String, Object> c = new HashMap<>();
                     c.put("id", p.getId());
@@ -170,14 +170,14 @@ public class VotingService {
         GameObject game = getGameOrThrow(gameCode);
         Player voter = getPlayerOrThrow(game, voterId);
 
-        if (!voter.isTraitor()) {
-            throw new SecurityException("Only traitors can cast murder votes");
+        if (voter.isDead()) {
+            throw new IllegalStateException("Dead players cannot vote");
         }
 
         for (String targetId : targetIds) {
             Player target = getPlayerOrThrow(game, targetId);
-            if (target.isTraitor()) {
-                throw new IllegalArgumentException("Cannot target a fellow traitor");
+            if (voterId.equals(targetId)) {
+                throw new IllegalArgumentException("Cannot vote for yourself");
             }
             if (target.isDead()) {
                 throw new IllegalArgumentException("Cannot target a dead player");

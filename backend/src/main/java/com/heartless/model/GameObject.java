@@ -28,6 +28,7 @@ public class GameObject {
     private Long startGameTime;
     private Long endGameTime;
     private String lastMurderId;
+    private MenuControl menuControl;
 
     public GameObject(String gameIdCode) {
         this.gameId = ID_GENERATOR.getAndIncrement();
@@ -43,6 +44,7 @@ public class GameObject {
         this.startGameTime = null;
         this.endGameTime = null;
         this.lastMurderId = null;
+        this.menuControl = new MenuControl();
     }
 
     // --- State transitions ---
@@ -114,6 +116,8 @@ public class GameObject {
     public void setEndGameTime(Long endGameTime) { this.endGameTime = endGameTime; }
     public String getLastMurderId() { return lastMurderId; }
     public void setLastMurderId(String lastMurderId) { this.lastMurderId = lastMurderId; }
+    public MenuControl getMenuControl() { return menuControl; }
+    public void setMenuControl(MenuControl menuControl) { this.menuControl = menuControl; }
 
     /**
      * Find a player by their unique ID.

@@ -1,6 +1,7 @@
 package com.heartless.event;
 
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 
 /**
  * Vote reveal event — reveals the result of the banish vote.
@@ -30,6 +31,14 @@ public class VoteRevealEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
-        // Stub: reveal vote outcome to all players
+        game.setMenuControl(setMenuItems());
+    }
+
+    @Override
+    public MenuControl setMenuItems() {
+        MenuControl mc = new MenuControl();
+        mc.setAllChatEnabled(true);
+        mc.setGameLogsEnabled(true);
+        return mc;
     }
 }

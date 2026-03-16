@@ -1,6 +1,7 @@
 package com.heartless.event;
 
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 
 /**
  * Lobby event — handles the waiting-for-players phase.
@@ -30,6 +31,14 @@ public class LobbyEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
-        // Stub: lobby logic (waiting for players to join)
+        game.setMenuControl(setMenuItems());
+    }
+
+    @Override
+    public MenuControl setMenuItems() {
+        MenuControl mc = new MenuControl();
+        mc.setAllChatEnabled(true);
+        mc.setGameOptionsEnabled(true);
+        return mc;
     }
 }

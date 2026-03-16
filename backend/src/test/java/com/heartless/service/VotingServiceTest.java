@@ -112,51 +112,69 @@ class VotingServiceTest {
         assertNotNull(result.get("tally"));
     }
 
-    // Murder vote tests - T069
+    // Murder vote tests - T069 (updated: all alive players can vote)
     @Test
-    void getMurderCandidatesTraitorOnly() {
-        player1.setTraitor(true);
+    void getMurderCandidatesExcludesSelf() {
         var result = votingService.getMurderCandidates("VOTE01", player1.getId());
         List<Map<String, Object>> candidates = (List<Map<String, Object>>) result.get("candidates");
-        // Should show non-traitor, alive players: player2, player3 (not deadPlayer, not player1)
+        // Should show alive players excluding self: player2, player3 (not deadPlayer, not player1)
         assertEquals(2, candidates.size());
-        boolean containsTraitor = candidates.stream()
+        boolean containsSelf = candidates.stream()
                 .anyMatch(c -> c.get("id").equals(player1.getId()));
-        assertFalse(containsTraitor);
+        assertFalse(containsSelf);
     }
 
     @Test
-    void getMurderCandidatesRejectsNonTraitor() {
-        assertThrows(SecurityException.class,
-                () -> votingService.getMurderCandidates("VOTE01", player2.getId()));
+    void getMurderCandidatesExcludesDead() {
+        var result = votingService.getMurderCandidates("VOTE01", player1.getId());
+        List<Map<String, Object>> candidates = (List<Map<String, Object>>) result.get("candidates");
+        boolean containsDead = candidates.stream()
+                .anyMatch(c -> c.get("id").equals(deadPlayer.getId()));
+        assertFalse(containsDead);
+    }
+
+    @Test
+    void getMurderCandidatesAllowsNonTraitor() {
+        // Non-traitor players can now access murder vote
+        var result = votingService.getMurderCandidates("VOTE01", player2.getId());
+        assertNotNull(result.get("candidates"));
+    }
+
+    @Test
+    void getMurderCandidatesRejectsDeadVoter() {
+        assertThrows(IllegalStateException.class,
+                () -> votingService.getMurderCandidates("VOTE01", deadPlayer.getId()));
     }
 
     @Test
     void castMurderVoteSuccess() {
-        player1.setTraitor(true);
         var result = votingService.castMurderVote("VOTE01", player1.getId(), List.of(player2.getId()));
         assertEquals(true, result.get("voteRecorded"));
     }
 
     @Test
-    void castMurderVoteRejectsNonTraitor() {
-        assertThrows(SecurityException.class,
-                () -> votingService.castMurderVote("VOTE01", player2.getId(), List.of(player3.getId())));
+    void castMurderVoteAllowsNonTraitor() {
+        // Non-traitor players can now cast murder votes
+        var result = votingService.castMurderVote("VOTE01", player2.getId(), List.of(player3.getId()));
+        assertEquals(true, result.get("voteRecorded"));
     }
 
     @Test
-    void castMurderVoteRejectsTraitorTarget() {
-        player1.setTraitor(true);
-        player2.setTraitor(true);
+    void castMurderVoteRejectsSelfVote() {
         assertThrows(IllegalArgumentException.class,
-                () -> votingService.castMurderVote("VOTE01", player1.getId(), List.of(player2.getId())));
+                () -> votingService.castMurderVote("VOTE01", player1.getId(), List.of(player1.getId())));
     }
 
     @Test
     void castMurderVoteRejectsDeadTarget() {
-        player1.setTraitor(true);
         assertThrows(IllegalArgumentException.class,
                 () -> votingService.castMurderVote("VOTE01", player1.getId(), List.of(deadPlayer.getId())));
+    }
+
+    @Test
+    void castMurderVoteRejectsDeadVoter() {
+        assertThrows(IllegalStateException.class,
+                () -> votingService.castMurderVote("VOTE01", deadPlayer.getId(), List.of(player1.getId())));
     }
 
     @Test

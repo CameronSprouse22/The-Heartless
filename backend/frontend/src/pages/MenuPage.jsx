@@ -146,8 +146,9 @@ function MenuPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <GameStatusBar
-        gameStatus={menu.gameStatus}
-        round={-1}
+        gameStatus={menu.statusString || menu.gameStatus}
+        round={menu.round}
+        currentTask={menu.currentTask}
         playerName={menu.playerName}
       />
 

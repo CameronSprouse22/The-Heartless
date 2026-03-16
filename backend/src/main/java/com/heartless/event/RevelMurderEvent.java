@@ -1,6 +1,7 @@
 package com.heartless.event;
 
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 
 /**
  * Revel murder event — reveals the murder outcome to all players.
@@ -30,6 +31,14 @@ public class RevelMurderEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
-        // Stub: reveal murder result
+        game.setMenuControl(setMenuItems());
+    }
+
+    @Override
+    public MenuControl setMenuItems() {
+        MenuControl mc = new MenuControl();
+        mc.setAllChatEnabled(true);
+        mc.setGameLogsEnabled(true);
+        return mc;
     }
 }

@@ -17,13 +17,9 @@ function MurderVotePage() {
   useEffect(() => {
     if (!playerCode) { navigate('/'); return; }
     getMurderCandidates(gameCode, playerCode)
-      .then(res => setCandidates(res.data))
+      .then(res => setCandidates(res.candidates || []))
       .catch(err => {
-        if (err.response?.status === 403) {
-          setError('Only traitors can access the murder vote.');
-        } else {
-          setError('Failed to load candidates');
-        }
+        setError(err.message || 'Failed to load candidates');
       });
   }, [gameCode, playerCode, navigate]);
 
@@ -39,7 +35,7 @@ function MurderVotePage() {
       await castMurderVote(gameCode, playerCode, selected);
       setSubmitted(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Vote failed');
+      setError(err.message || 'Vote failed');
     }
   };
 
