@@ -4,8 +4,8 @@ package com.heartless.model;
  * Controls which menu items are enabled/visible during a game event.
  * Each event creates its own MenuControl to define what players can access.
  */
-public class 0M
-0enuControl {
+public class MenuControl {
+
 
     private boolean traitorChatEnabled;
     private boolean allChatEnabled;

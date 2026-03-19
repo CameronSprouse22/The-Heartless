@@ -2,6 +2,7 @@ package com.heartless.gamethread;
 
 import com.heartless.event.EventObjectInterface;
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 import com.heartless.model.Player;
 import com.heartless.model.enums.GameStatusEnum;
 import com.heartless.model.enums.PlayerStatusEnum;
@@ -162,6 +163,9 @@ class GameThreadTest {
 
         @Override
         public GameObject getGame() { return game; }
+
+        @Override
+        public MenuControl setMenuItems() { return new MenuControl(); }
 
         @Override
         public void execute() { log.add(name); }

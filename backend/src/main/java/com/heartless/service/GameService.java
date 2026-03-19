@@ -5,6 +5,8 @@ import com.heartless.model.GameObject;
 import com.heartless.model.Player;
 import com.heartless.model.enums.GameStatusEnum;
 import com.heartless.model.enums.PlayerStatusEnum;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -16,6 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Service
 public class GameService {
+
+    private static final Logger log = LogManager.getLogger(GameService.class);
 
     private static final String CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int CODE_LENGTH = 6;
@@ -130,6 +134,7 @@ public class GameService {
     }
 
     public Map<String, Object> startGame(String gameCode, String playerCode) {
+        log.info("Game starting — gameCode={}", gameCode);
         GameObject game = getGameOrThrow(gameCode);
         validateVip(game, playerCode);
 
@@ -138,7 +143,9 @@ public class GameService {
                 .toList();
 
         int activeCount = activePlayers.size();
+        log.debug("Active player count={} for gameCode={}", activeCount, gameCode);
         if (activeCount < 4) {
+            log.warn("Start rejected — only {} active players for gameCode={}", activeCount, gameCode);
             throw new IllegalStateException("Need at least 4 active players to start (currently " + activeCount + ")");
         }
 
@@ -146,6 +153,7 @@ public class GameService {
             game.transitionToStart();
             assignRoles(activePlayers, activeCount);
         }
+        log.info("Game started — gameCode={} players={}", gameCode, activeCount);
 
         Map<String, Object> result = new HashMap<>();
         result.put("gameStatus", game.getGameStatus().name());

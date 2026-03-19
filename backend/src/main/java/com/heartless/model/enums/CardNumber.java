@@ -1,7 +1,6 @@
 package com.heartless.model.enums;
 
 public enum CardNumber {
-    ONE(1),
     TWO(2),
     THREE(3),
     FOUR(4),

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+        <Console name="ConsoleRoot" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %C{1} - %msg%n"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <!-- Application code at DEBUG so GameThread trace-level detail is visible -->
+        <Logger name="com.heartless" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Spring / third-party at INFO to reduce noise -->
+        <Root level="INFO">
+            <AppenderRef ref="ConsoleRoot"/>
+        </Root>
+    </Loggers>
+
+</Configuration>
