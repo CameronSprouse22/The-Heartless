@@ -1,5 +1,6 @@
 package com.heartless.controller;
 
+import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
 import com.heartless.model.Player;
 import com.heartless.model.RoundObject;
@@ -129,49 +130,8 @@ public class GameController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
             }
 
-            List<Map<String, Object>> menuItems = new java.util.ArrayList<>();
-            com.heartless.model.MenuControl mc = game.getMenuControl();
-
-            // Traitor Chat
-            menuItems.add(Map.of("id", "traitor-chat", "label", "Traitor Chat",
-                    "enabled", mc.isTraitorChatEnabled(), "visible", true));
-            // All Chat
-            menuItems.add(Map.of("id", "all-chat", "label", "All Chat",
-                    "enabled", mc.isAllChatEnabled() && !player.isDead(), "visible", !player.isDead()));
-            // Banish Vote
-            menuItems.add(Map.of("id", "banish-vote", "label", "Banish Vote",
-                    "enabled", mc.isBanishVoteEnabled() && !player.isDead(), "visible", true));
-            // Murder Vote
-            menuItems.add(Map.of("id", "murder-vote", "label", "Murder Vote",
-                    "enabled", mc.isMurderVoteEnabled() && !player.isDead(), "visible", !player.isDead()));
-            // Individual Chat
-            menuItems.add(Map.of("id", "individual-chat", "label", "Individual Chat",
-                    "enabled", mc.isIndividualChatEnabled() && !player.isDead(), "visible", !player.isDead()));
-            // Dead Players Chat
-            if (player.isDead()) {
-                menuItems.add(Map.of("id", "dead-chat", "label", "Dead Chat",
-                        "enabled", true, "visible", true));
-            }
-            // Actions
-            menuItems.add(Map.of("id", "actions", "label", "Actions",
-                    "enabled", mc.isActionsEnabled(), "visible", true));
-            // Game Logs
-            menuItems.add(Map.of("id", "game-logs", "label", "Game Logs",
-                    "enabled", mc.isGameLogsEnabled(), "visible", true));
-            // Game Options
-            menuItems.add(Map.of("id", "game-options", "label", "Game Options",
-                    "enabled", mc.isGameOptionsEnabled(), "visible", true));
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("gameStatus", game.getGameStatus().name());
-            result.put("round", game.getRound());
-            result.put("currentTask", game.getCurrentTask());
-            result.put("statusString", deriveStatusString(game));
-            result.put("playerName", player.getName());
-            result.put("isDead", player.isDead());
-            result.put("isTraitor", player.isTraitor());
-            result.put("menuItems", menuItems);
-            return ResponseEntity.ok(result);
+            GameState gameState = GameState.fromMenuControl(game.getMenuControl(), game, player);
+            return ResponseEntity.ok(gameState.toMap());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }

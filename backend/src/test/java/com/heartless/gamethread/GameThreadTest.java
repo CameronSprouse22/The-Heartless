@@ -165,7 +165,9 @@ class GameThreadTest {
         public GameObject getGame() { return game; }
 
         @Override
-        public MenuControl setMenuItems() { return new MenuControl(); }
+        public GameState getGameState(Player player) {
+            return GameState.fromMenuControl(new MenuControl(), game, player);
+        }
 
         @Override
         public void execute() { log.add(name); }

@@ -2,6 +2,7 @@ package com.heartless.gamethread;
 
 import com.heartless.event.EventObjectInterface;
 import com.heartless.model.GameObject;
+import com.heartless.model.Player;
 import com.heartless.model.RoundObject;
 import com.heartless.model.enums.GameStatusEnum;
 import org.apache.logging.log4j.LogManager;
@@ -20,7 +21,9 @@ public class GameThread {
     private final GameObject gameObject;
     private final GameCriteriaObject gameCriteriaObject;
     private final List<EventObjectInterface> eventList;
+    private EventObjectInterface currentEvent;
     private String statusString;
+
 
     public GameThread(GameObject gameObject,
                       GameCriteriaObject gameCriteriaObject,
@@ -83,6 +86,7 @@ public class GameThread {
             if (event.checkStartConditions()) {
                 log.debug("Executing event {} — round={} gameId={}",
                         event.getClass().getSimpleName(), gameObject.getRound(), gameObject.getGameId());
+                this.currentEvent = event;
                 event.execute();
             } else {
                 log.trace("Skipping event {} (conditions not met) — round={}",
@@ -116,5 +120,21 @@ public class GameThread {
 
     public String getStatusString() {
         return statusString;
+    }
+
+    public EventObjectInterface getCurrentEvent() {
+        return currentEvent;
+    }
+
+    /**
+     * Build a GameState snapshot for the given player.
+     * Delegates to the current event's getGameState if one is active,
+     * otherwise falls back to the game's stored MenuControl.
+     */
+    public GameState buildGameState(Player player) {
+        if (currentEvent != null) {
+            return currentEvent.getGameState(player);
+        }
+        return GameState.fromMenuControl(gameObject.getMenuControl(), gameObject, player);
     }
 }
