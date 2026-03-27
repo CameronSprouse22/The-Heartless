@@ -165,8 +165,8 @@ class GameThreadTest {
         public GameObject getGame() { return game; }
 
         @Override
-        public GameState getGameState(Player player) {
-            return GameState.fromMenuControl(new MenuControl(), game, player);
+        public GameState getGameState() {
+            return GameState.fromMenuControl(new MenuControl(), game);
         }
 
         @Override

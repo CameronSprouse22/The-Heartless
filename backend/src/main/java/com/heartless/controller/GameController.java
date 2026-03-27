@@ -130,7 +130,7 @@ public class GameController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
             }
 
-            GameState gameState = GameState.fromMenuControl(game.getMenuControl(), game, player);
+            GameState gameState = GameState.fromMenuControl(game.getMenuControl(), game);
             return ResponseEntity.ok(gameState.toMap());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));

@@ -1,6 +1,7 @@
 package com.heartless.gamethread;
 
 import com.heartless.event.EventObjectInterface;
+import com.heartless.event.TestingEvent;
 import com.heartless.model.GameObject;
 import com.heartless.model.Player;
 import com.heartless.model.RoundObject;
@@ -50,6 +51,7 @@ public class GameThread {
      * Main game loop: iterate rounds executing events until criteria met.
      */
     public void gameStart() {
+        currentEvent = new TestingEvent(gameObject);
         log.info("Game starting — gameId={}", gameObject.getGameId());
         this.statusString = "Round " + gameObject.getRound();
         gameObject.setCurrentTask("In progress");
@@ -133,8 +135,10 @@ public class GameThread {
      */
     public GameState buildGameState(Player player) {
         if (currentEvent != null) {
-            return currentEvent.getGameState(player);
+            log.error("NO EVENT!");
+            return currentEvent.getGameState();
         }
-        return GameState.fromMenuControl(gameObject.getMenuControl(), gameObject, player);
+        log.error("EVENT TYPE " + currentEvent.getClass().getSimpleName());
+        return GameState.fromMenuControl(gameObject.getMenuControl(), gameObject);
     }
 }
