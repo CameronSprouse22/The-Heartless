@@ -1,5 +1,8 @@
 package com.heartless.service;
 
+import com.heartless.event.TestingEvent;
+import com.heartless.gamethread.GameCriteriaObject;
+import com.heartless.gamethread.GameThread;
 import com.heartless.model.Card;
 import com.heartless.model.GameObject;
 import com.heartless.model.Player;
@@ -153,6 +156,15 @@ public class GameService {
             game.transitionToStart();
             assignRoles(activePlayers, activeCount);
         }
+
+        // Create and store the GameThread
+        GameCriteriaObject criteria = new GameCriteriaObject();
+        TestingEvent testingEvent = new TestingEvent(game);
+        GameThread gameThread = new GameThread(game, criteria, List.of(testingEvent));
+        gameThread.gameInit();
+        testingEvent.execute();
+        gameStore.putGameThread(gameCode, gameThread);
+
         log.info("Game started — gameCode={} players={}", gameCode, activeCount);
 
         Map<String, Object> result = new HashMap<>();
@@ -182,6 +194,10 @@ public class GameService {
     public String getGameCodeForPlayer(String playerCode) {
         String[] info = playerCodeMap.get(playerCode);
         return info != null ? info[0] : null;
+    }
+
+    public GameThread getGameThread(String gameCode) {
+        return gameStore.getGameThread(gameCode);
     }
 
     public void registerPlayerCode(String playerCode, String gameCode, String playerId) {

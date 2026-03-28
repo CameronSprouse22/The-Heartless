@@ -42,6 +42,7 @@ public class GameThread {
         log.info("Game initialising — gameId={}", gameObject.getGameId());
         this.statusString = "Lobby";
         gameObject.setCurrentTask("Waiting for players");
+        gameStart();
         log.debug("gameInit complete — status={}", this.statusString);
     }
 
@@ -135,10 +136,10 @@ public class GameThread {
      */
     public GameState buildGameState(Player player) {
         if (currentEvent != null) {
-            log.error("NO EVENT!");
+            log.debug("Active event: {}", currentEvent.getClass().getSimpleName());
             return currentEvent.getGameState();
         }
-        log.error("EVENT TYPE " + currentEvent.getClass().getSimpleName());
+        log.debug("No active event — using stored MenuControl");
         return GameState.fromMenuControl(gameObject.getMenuControl(), gameObject);
     }
 }

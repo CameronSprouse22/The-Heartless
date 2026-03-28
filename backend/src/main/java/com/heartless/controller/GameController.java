@@ -1,6 +1,7 @@
 package com.heartless.controller;
 
 import com.heartless.gamethread.GameState;
+import com.heartless.gamethread.GameThread;
 import com.heartless.model.GameObject;
 import com.heartless.model.Player;
 import com.heartless.model.RoundObject;
@@ -130,7 +131,13 @@ public class GameController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
             }
 
-            GameState gameState = GameState.fromMenuControl(game.getMenuControl(), game);
+            GameThread gameThread = gameService.getGameThread(gameCode);
+            GameState gameState;
+            if (gameThread != null) {
+                gameState = gameThread.buildGameState(player);
+            } else {
+                gameState = GameState.fromMenuControl(game.getMenuControl(), game);
+            }
             return ResponseEntity.ok(gameState.toMap());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));

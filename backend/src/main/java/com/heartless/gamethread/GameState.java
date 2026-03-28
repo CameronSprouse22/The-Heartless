@@ -69,23 +69,23 @@ public class GameState {
     public static List<Map<String, Object>> buildMenuItems(MenuControl mc) {
         List<Map<String, Object>> menuItems = new ArrayList<>();
         menuItems.add(Map.of("id", "traitor-chat", "label", "Traitor Chat",
-                "enabled", mc.isTraitorChatEnabled()));
+                "enabled", mc.isTraitorChatEnabled(), "visible", mc.isTraitorChatEnabled()));
         menuItems.add(Map.of("id", "all-chat", "label", "All Chat",
-                "enabled", mc.isAllChatEnabled()));
+                "enabled", mc.isAllChatEnabled(), "visible", mc.isAllChatEnabled()));
         menuItems.add(Map.of("id", "banish-vote", "label", "Banish Vote",
-                "enabled", mc.isBanishVoteEnabled()));
+                "enabled", mc.isBanishVoteEnabled(), "visible", mc.isBanishVoteEnabled()));
         menuItems.add(Map.of("id", "murder-vote", "label", "Murder Vote",
-                "enabled", mc.isMurderVoteEnabled()));
+                "enabled", mc.isMurderVoteEnabled(), "visible", mc.isMurderVoteEnabled()));
         menuItems.add(Map.of("id", "individual-chat", "label", "Individual Chat",
-                "enabled", mc.isIndividualChatEnabled()));
+                "enabled", mc.isIndividualChatEnabled(), "visible", mc.isIndividualChatEnabled()));
         menuItems.add(Map.of("id", "dead-chat", "label", "Dead Chat",
-                "enabled", false));
+                "enabled", false, "visible", false));
         menuItems.add(Map.of("id", "actions", "label", "Actions",
-                "enabled", mc.isActionsEnabled()));
+                "enabled", mc.isActionsEnabled(), "visible", mc.isActionsEnabled()));
         menuItems.add(Map.of("id", "game-logs", "label", "Game Logs",
-                "enabled", mc.isGameLogsEnabled()));
+                "enabled", mc.isGameLogsEnabled(), "visible", mc.isGameLogsEnabled()));
         menuItems.add(Map.of("id", "game-options", "label", "Game Options",
-                "enabled", mc.isGameOptionsEnabled()));
+                "enabled", mc.isGameOptionsEnabled(), "visible", mc.isGameOptionsEnabled()));
         return menuItems;
     }
 

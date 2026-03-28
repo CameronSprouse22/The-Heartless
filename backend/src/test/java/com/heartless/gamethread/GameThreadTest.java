@@ -39,9 +39,10 @@ class GameThreadTest {
         // Game should already be in INIT before gameInit
         assertEquals(GameStatusEnum.INIT, game.getGameStatus());
         thread.gameInit();
-        // After gameInit, still INIT (waiting for start)
+        // gameInit calls gameStart, but with no players the loop exits immediately
         assertEquals(GameStatusEnum.INIT, game.getGameStatus());
-        assertEquals("Lobby", thread.getStatusString());
+        // statusString ends at whatever gameStart set (no rounds ran, so "Round -1")
+        assertTrue(thread.getStatusString().contains("Round"));
     }
 
     @Test
@@ -84,9 +85,9 @@ class GameThreadTest {
         EventObjectInterface event2 = new StubEvent(game, "Event2", executionLog);
         EventObjectInterface event3 = new StubEvent(game, "Event3", executionLog);
 
-        GameThread thread = new GameThread(game, criteria, List.of(event1, event2, event3));
-        thread.gameInit();
+        // gameInit calls gameStart which runs the loop — transition first
         game.transitionToStart();
+        GameThread thread = new GameThread(game, criteria, List.of(event1, event2, event3));
         thread.runSingleRound();
 
         assertEquals(3, executionLog.size());
@@ -114,10 +115,6 @@ class GameThreadTest {
 
     @Test
     void statusStringUpdates() {
-        GameThread thread = new GameThread(game, criteria, List.of());
-        thread.gameInit();
-        assertEquals("Lobby", thread.getStatusString());
-
         createActive("A", false);
         createActive("B", false);
         createActive("C", false);
@@ -130,10 +127,10 @@ class GameThreadTest {
                 super.execute();
             }
         };
-        thread = new GameThread(game, criteria, List.of(killEvent));
-        thread.gameInit();
         game.transitionToStart();
-        thread.gameStart();
+        GameThread thread = new GameThread(game, criteria, List.of(killEvent));
+        thread.gameInit();
+        // gameInit calls gameStart which runs the loop
         assertTrue(thread.getStatusString().contains("Round"));
     }
 
