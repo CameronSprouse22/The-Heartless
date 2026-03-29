@@ -145,3 +145,24 @@ export function getRoundInfo(gameCode, playerCode) {
     headers: authHeader(playerCode),
   });
 }
+
+// Game Events
+export function createEvent(gameCode, playerCode, config) {
+  return fetchJson(`/games/${gameCode}/event`, {
+    method: 'POST',
+    headers: authHeader(playerCode),
+    body: JSON.stringify(config),
+  });
+}
+
+export function getEventState(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/event`, {
+    headers: authHeader(playerCode),
+  });
+}
+
+export function getEventPlayers(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/event/players`, {
+    headers: authHeader(playerCode),
+  });
+}
