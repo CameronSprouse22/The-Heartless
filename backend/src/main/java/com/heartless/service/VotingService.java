@@ -4,6 +4,7 @@ import com.heartless.model.GameObject;
 import com.heartless.model.Player;
 import com.heartless.model.Vote;
 import com.heartless.model.enums.PlayerStatusEnum;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -16,14 +17,16 @@ import java.util.concurrent.ConcurrentHashMap;
 public class VotingService {
 
     private final GameStore gameStore;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // gameCode -> list of banish votes for current round
     private final ConcurrentHashMap<String, List<Vote>> banishVotes = new ConcurrentHashMap<>();
     // gameCode -> list of murder votes for current round
     private final ConcurrentHashMap<String, List<Map<String, Object>>> murderVotes = new ConcurrentHashMap<>();
 
-    public VotingService(GameStore gameStore) {
+    public VotingService(GameStore gameStore, SimpMessagingTemplate messagingTemplate) {
         this.gameStore = gameStore;
+        this.messagingTemplate = messagingTemplate;
     }
 
     // --- Banish Vote ---
@@ -163,6 +166,7 @@ public class VotingService {
         result.put("votingEnabled", true);
         result.put("candidates", candidates);
         result.put("existingVotes", List.of());
+        result.put("othersVotes", getOtherMurderVotes(gameCode, playerId, game));
         return result;
     }
 
@@ -186,9 +190,29 @@ public class VotingService {
 
         Map<String, Object> voteRecord = new HashMap<>();
         voteRecord.put("voterId", voterId);
+        voteRecord.put("voterName", voter.getName());
         voteRecord.put("targetIds", targetIds);
 
+        List<String> targetNames = targetIds.stream()
+                .map(tid -> {
+                    Player t = game.findPlayerById(tid);
+                    return t != null ? t.getName() : tid;
+                })
+                .toList();
+        voteRecord.put("targetNames", targetNames);
+
         murderVotes.computeIfAbsent(gameCode, k -> Collections.synchronizedList(new ArrayList<>())).add(voteRecord);
+
+        // Broadcast to other traitors via WebSocket
+        if (messagingTemplate != null) {
+            Map<String, Object> broadcast = new HashMap<>();
+            broadcast.put("type", "MURDER_VOTE_UPDATE");
+            broadcast.put("voterId", voterId);
+            broadcast.put("voterName", voter.getName());
+            broadcast.put("targetIds", targetIds);
+            broadcast.put("targetNames", targetNames);
+            messagingTemplate.convertAndSend("/topic/games/" + gameCode + "/murder-vote", broadcast);
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("voteRecorded", true);
@@ -200,6 +224,22 @@ public class VotingService {
     public void clearVotes(String gameCode) {
         banishVotes.remove(gameCode);
         murderVotes.remove(gameCode);
+    }
+
+    private List<Map<String, Object>> getOtherMurderVotes(String gameCode, String playerId, GameObject game) {
+        List<Map<String, Object>> votes = murderVotes.getOrDefault(gameCode, List.of());
+        List<Map<String, Object>> others = new ArrayList<>();
+        for (Map<String, Object> v : votes) {
+            if (!playerId.equals(v.get("voterId"))) {
+                Map<String, Object> entry = new HashMap<>();
+                entry.put("voterId", v.get("voterId"));
+                entry.put("voterName", v.get("voterName"));
+                entry.put("targetIds", v.get("targetIds"));
+                entry.put("targetNames", v.get("targetNames"));
+                others.add(entry);
+            }
+        }
+        return others;
     }
 
     private GameObject getGameOrThrow(String gameCode) {

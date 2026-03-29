@@ -5,10 +5,9 @@ import VoteCard from '../components/VoteCard';
 import { getBanishCandidates, castBanishVote } from '../services/api';
 
 function BanishVotePage() {
-  const { gameCode } = useParams();
+  const { gameCode, playerName } = useParams();
   const navigate = useNavigate();
   const playerCode = localStorage.getItem('playerCode');
-  const playerName = localStorage.getItem('playerName') || '';
   const [candidates, setCandidates] = useState([]);
   const [selected, setSelected] = useState(null);
   const [submitted, setSubmitted] = useState(false);

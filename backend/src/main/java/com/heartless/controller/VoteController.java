@@ -1,11 +1,19 @@
 package com.heartless.controller;
 
+import com.heartless.model.GameObject;
+import com.heartless.model.Player;
 import com.heartless.service.GameService;
+import com.heartless.service.GameStore;
 import com.heartless.service.VotingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,10 +23,39 @@ public class VoteController {
 
     private final VotingService votingService;
     private final GameService gameService;
+    private final GameStore gameStore;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public VoteController(VotingService votingService, GameService gameService) {
+    public VoteController(VotingService votingService, GameService gameService,
+                          GameStore gameStore, SimpMessagingTemplate messagingTemplate) {
         this.votingService = votingService;
         this.gameService = gameService;
+        this.gameStore = gameStore;
+        this.messagingTemplate = messagingTemplate;
+    }
+
+    /** Broadcast live (pre-submit) selection to other traitors on the murder vote page. */
+    @MessageMapping("/games/{gameCode}/murder-selection")
+    public void handleMurderSelection(@DestinationVariable String gameCode,
+                                      Map<String, Object> payload,
+                                      StompHeaderAccessor accessor) {
+        Map<String, Object> attrs = accessor.getSessionAttributes();
+        if (attrs == null) return;
+        String playerId = (String) attrs.get("playerId");
+        if (playerId == null) return;
+
+        GameObject game = gameStore.getGame(gameCode);
+        if (game == null) return;
+        Player player = game.findPlayerById(playerId);
+        if (player == null) return;
+
+        Map<String, Object> broadcast = new HashMap<>();
+        broadcast.put("type", "MURDER_SELECTION_UPDATE");
+        broadcast.put("voterId", playerId);
+        broadcast.put("voterName", player.getName());
+        broadcast.put("targetIds", payload.getOrDefault("targetIds", List.of()));
+        broadcast.put("targetNames", payload.getOrDefault("targetNames", List.of()));
+        messagingTemplate.convertAndSend("/topic/games/" + gameCode + "/murder-vote", broadcast);
     }
 
     @GetMapping("/games/{gameCode}/vote/banish")

@@ -25,7 +25,7 @@ class VotingServiceTest {
     @BeforeEach
     void setUp() {
         gameStore = new GameStore();
-        votingService = new VotingService(gameStore);
+        votingService = new VotingService(gameStore, null);
 
         game = new GameObject("VOTE01");
         game.transitionToStart(); // game must be START to vote

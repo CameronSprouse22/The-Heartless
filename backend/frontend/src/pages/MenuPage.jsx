@@ -137,8 +137,8 @@ function MenuPage() {
       case 'all-chat': navigate(`/chat/${gameCode}/all`); break;
       case 'individual-chat': navigate(`/chat/${gameCode}/individual`); break;
       case 'dead-chat': navigate(`/chat/${gameCode}/dead`); break;
-      case 'banish-vote': navigate(`/vote/${gameCode}/banish`); break;
-      case 'murder-vote': navigate(`/vote/${gameCode}/murder`); break;
+      case 'banish-vote': navigate(`/vote/${gameCode}/${encodeURIComponent(playerName)}/banish`); break;
+      case 'murder-vote': navigate(`/vote/${gameCode}/${encodeURIComponent(playerName)}/murder`); break;
       default: break;
     }
   };

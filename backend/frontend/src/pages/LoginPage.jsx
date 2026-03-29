@@ -32,10 +32,10 @@ function LoginPage() {
     setError('');
     try {
       const result = await createTestGame();
-      // Store VIP (Player 1) credentials
+      // Store VIP (Alpha) credentials
       localStorage.setItem('playerCode', result.vipPlayerCode);
       localStorage.setItem('gameCode', result.gameCode);
-      localStorage.setItem('playerName', 'Player 1');
+      localStorage.setItem('playerName', 'Alpha');
       // Store all player codes for easy switching
       localStorage.setItem('testPlayers', JSON.stringify(result.players));
       navigate(`/lobby/${result.gameCode}`);

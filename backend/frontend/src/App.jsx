@@ -30,8 +30,8 @@ function App() {
         <Route path="/chat/:gameCode/traitors" element={<TraitorChatPage />} />
         <Route path="/chat/:gameCode/individual" element={<IndividualChatPage />} />
         <Route path="/chat/:gameCode/dead" element={<DeadChatPage />} />
-        <Route path="/vote/:gameCode/banish" element={<BanishVotePage />} />
-        <Route path="/vote/:gameCode/murder" element={<MurderVotePage />} />
+        <Route path="/vote/:gameCode/:playerName/banish" element={<BanishVotePage />} />
+        <Route path="/vote/:gameCode/:playerName/murder" element={<MurderVotePage />} />
         <Route path="/actions/:gameCode" element={<ActionsPage />} />
         <Route path="/logs/:gameCode" element={<GameLogsPage />} />
         <Route path="/event/:gameCode" element={<GameEventPage />} />

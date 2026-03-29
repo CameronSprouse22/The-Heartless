@@ -5,6 +5,8 @@ let stompClient = null;
 
 export function connect(playerCode, onConnect, onError) {
   if (stompClient && stompClient.connected) {
+    // Already connected — call onConnect immediately so subscriptions are set up
+    if (onConnect) onConnect(stompClient);
     return stompClient;
   }
 

@@ -254,8 +254,12 @@ public class GameService {
         }
     }
 
+    private static final String[] TEST_PLAYER_NAMES = {
+        "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf"
+    };
+
     /**
-     * Creates a test game with 7 hardcoded players (1@gmail.com through 7@gmail.com),
+     * Creates a test game with 7 hardcoded players (Alpha through Golf),
      * all set to ACTIVE status so the game can be started immediately.
      */
     public Map<String, Object> createTestGame() {
@@ -264,9 +268,9 @@ public class GameService {
 
         List<Map<String, Object>> playerInfoList = new ArrayList<>();
 
-        for (int i = 1; i <= 7; i++) {
-            String name = "Player " + i;
-            String email = i + "@gmail.com";
+        for (int i = 0; i < TEST_PLAYER_NAMES.length; i++) {
+            String name = TEST_PLAYER_NAMES[i];
+            String email = name.toLowerCase() + "@gmail.com";
             Player player = new Player(name, email, null);
             player.setStatus(PlayerStatusEnum.ACTIVE);
             game.addPlayer(player);
