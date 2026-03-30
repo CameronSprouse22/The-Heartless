@@ -12,6 +12,7 @@ import BanishVotePage from './pages/BanishVotePage';
 import MurderVotePage from './pages/MurderVotePage';
 import ActionsPage from './pages/ActionsPage';
 import GameLogsPage from './pages/GameLogsPage';
+import TestDashboardPage from './pages/TestDashboardPage';
 
 function NotFoundPage() {
   return <div style={{ padding: '2rem', textAlign: 'center' }}><h1>Not Found</h1></div>;
@@ -33,6 +34,7 @@ function App() {
         <Route path="/vote/:gameCode/murder" element={<MurderVotePage />} />
         <Route path="/actions/:gameCode" element={<ActionsPage />} />
         <Route path="/logs/:gameCode" element={<GameLogsPage />} />
+        <Route path="/test-dashboard" element={<TestDashboardPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
