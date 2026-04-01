@@ -4,6 +4,7 @@ import com.heartless.event.EventObjectInterface;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
 import com.heartless.model.Player;
+import com.heartless.model.UserSelectionsState;
 import com.heartless.model.enums.GameStatusEnum;
 import com.heartless.model.enums.PlayerStatusEnum;
 import org.junit.jupiter.api.BeforeEach;
@@ -159,7 +160,9 @@ class GameThreadTest {
         public boolean checkEndConditions() { return true; }
 
         @Override
-        public GameObject getGame() { return game; }
+        public ArrayList<UserSelectionsState> getUsersSelections() {
+            return new ArrayList<>(game.getSelectionStateMap().values());
+        }
 
         @Override
         public GameState getGameState() {

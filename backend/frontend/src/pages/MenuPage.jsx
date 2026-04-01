@@ -9,9 +9,11 @@ function MenuPage() {
   const [menu, setMenu] = useState(null);
   const [playerInfo, setPlayerInfo] = useState(null);
   const [error, setError] = useState('');
-  const [playerCode, setPlayerCode] = useState(localStorage.getItem('playerCode'));
+  const [playerCode, setPlayerCode] = useState(
+    sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode')
+  );
   const [chatCounts, setChatCounts] = useState({});
-  const lastSeenCounts = useRef(JSON.parse(localStorage.getItem('lastSeenCounts') || '{}'));
+  const lastSeenCounts = useRef(JSON.parse(sessionStorage.getItem('lastSeenCounts') || '{}'));
 
   // Resolve playerName to playerCode on mount
   useEffect(() => {
@@ -20,9 +22,10 @@ function MenuPage() {
         const result = await resolvePlayer(gameCode, playerName);
         const code = result.playerCode;
         setPlayerCode(code);
-        localStorage.setItem('playerCode', code);
-        localStorage.setItem('playerName', playerName);
-        localStorage.setItem('gameCode', gameCode);
+        // Use sessionStorage so each tab tracks its own player independently
+        sessionStorage.setItem('playerCode', code);
+        sessionStorage.setItem('playerName', playerName);
+        sessionStorage.setItem('gameCode', gameCode);
       } catch (err) {
         setError('Could not find player "' + playerName + '" in game ' + gameCode);
       }
@@ -71,7 +74,7 @@ function MenuPage() {
   const markChannelSeen = (channelKey) => {
     const current = chatCounts[channelKey] || 0;
     lastSeenCounts.current[channelKey] = current;
-    localStorage.setItem('lastSeenCounts', JSON.stringify(lastSeenCounts.current));
+    sessionStorage.setItem('lastSeenCounts', JSON.stringify(lastSeenCounts.current));
   };
 
   const getUnreadCount = (channelKey) => {

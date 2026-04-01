@@ -9,7 +9,7 @@ import { connect, disconnect, subscribe, send } from '../services/websocket';
 export default function GameEventPage() {
   const { gameCode } = useParams();
   const navigate = useNavigate();
-  const playerCode = localStorage.getItem('playerCode');
+  const playerCode = sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode');
   const [config, setConfig] = useState(null);
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [textInput, setTextInput] = useState('');

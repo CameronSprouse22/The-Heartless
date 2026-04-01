@@ -3,6 +3,9 @@ package com.heartless.event;
 import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
+import com.heartless.model.UserSelectionsState;
+
+import java.util.ArrayList;
 
 public class VoteRevealEvent implements EventObjectInterface {
 
@@ -19,7 +22,9 @@ public class VoteRevealEvent implements EventObjectInterface {
     public boolean checkEndConditions() { return true; }
 
     @Override
-    public GameObject getGame() { return game; }
+    public ArrayList<UserSelectionsState> getUsersSelections() {
+        return new ArrayList<>(game.getSelectionStateMap().values());
+    }
 
     @Override
     public void execute() {

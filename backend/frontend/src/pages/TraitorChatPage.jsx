@@ -5,7 +5,7 @@ import ChatWindow from '../components/ChatWindow';
 function TraitorChatPage() {
   const { gameCode } = useParams();
   const navigate = useNavigate();
-  const playerCode = localStorage.getItem('playerCode');
+  const playerCode = sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode');
   const playerName = localStorage.getItem('playerName') || '';
 
   return (

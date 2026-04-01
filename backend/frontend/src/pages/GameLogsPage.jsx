@@ -4,7 +4,7 @@ import GameStatusBar from '../components/GameStatusBar';
 
 function GameLogsPage() {
   const { gameCode } = useParams();
-  const playerCode = localStorage.getItem('playerCode');
+  const playerCode = sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode');
 
   return (
     <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center' }}>

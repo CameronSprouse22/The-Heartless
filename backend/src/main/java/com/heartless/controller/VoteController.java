@@ -2,6 +2,7 @@ package com.heartless.controller;
 
 import com.heartless.model.GameObject;
 import com.heartless.model.Player;
+import com.heartless.model.UserSelectionsState;
 import com.heartless.service.GameService;
 import com.heartless.service.GameStore;
 import com.heartless.service.VotingService;
@@ -34,6 +35,38 @@ public class VoteController {
         this.messagingTemplate = messagingTemplate;
     }
 
+    /** Broadcast live (pre-submit) selection to other players on the banish vote page and persist to backend state. */
+    @MessageMapping("/games/{gameCode}/banish-selection")
+    public void handleBanishSelection(@DestinationVariable String gameCode,
+                                      Map<String, Object> payload,
+                                      StompHeaderAccessor accessor) {
+        Map<String, Object> attrs = accessor.getSessionAttributes();
+        if (attrs == null) return;
+        String playerId = (String) attrs.get("playerId");
+        if (playerId == null) return;
+
+        GameObject game = gameStore.getGame(gameCode);
+        if (game == null) return;
+        Player player = game.findPlayerById(playerId);
+        if (player == null) return;
+
+        // Persist selection state
+        String targetId = payload.get("targetId") instanceof String s ? s : null;
+        UserSelectionsState selState = game.getSelectionState(playerId);
+        if (selState != null) {
+            selState.setSelectedItems(targetId != null ? List.of(targetId) : List.of());
+        }
+
+        // Broadcast to other clients
+        Map<String, Object> broadcast = new HashMap<>();
+        broadcast.put("type", "BANISH_SELECTION_UPDATE");
+        broadcast.put("voterId", playerId);
+        broadcast.put("voterName", player.getName());
+        broadcast.put("targetId", payload.getOrDefault("targetId", null));
+        broadcast.put("targetName", payload.getOrDefault("targetName", null));
+        messagingTemplate.convertAndSend("/topic/games/" + gameCode + "/banish-vote", broadcast);
+    }
+
     /** Broadcast live (pre-submit) selection to other traitors on the murder vote page. */
     @MessageMapping("/games/{gameCode}/murder-selection")
     public void handleMurderSelection(@DestinationVariable String gameCode,
@@ -49,6 +82,15 @@ public class VoteController {
         Player player = game.findPlayerById(playerId);
         if (player == null) return;
 
+        // Persist selection state
+        @SuppressWarnings("unchecked")
+        List<String> targetIds = payload.get("targetIds") instanceof List<?> l
+                ? (List<String>) l : List.of();
+        UserSelectionsState selState = game.getSelectionState(playerId);
+        if (selState != null) {
+            selState.setSelectedItems(targetIds);
+        }
+
         Map<String, Object> broadcast = new HashMap<>();
         broadcast.put("type", "MURDER_SELECTION_UPDATE");
         broadcast.put("voterId", playerId);
@@ -56,6 +98,26 @@ public class VoteController {
         broadcast.put("targetIds", payload.getOrDefault("targetIds", List.of()));
         broadcast.put("targetNames", payload.getOrDefault("targetNames", List.of()));
         messagingTemplate.convertAndSend("/topic/games/" + gameCode + "/murder-vote", broadcast);
+    }
+
+    /** Persist a player's vote page text field value to backend state. */
+    @MessageMapping("/games/{gameCode}/vote-text")
+    public void handleVoteText(@DestinationVariable String gameCode,
+                               Map<String, Object> payload,
+                               StompHeaderAccessor accessor) {
+        Map<String, Object> attrs = accessor.getSessionAttributes();
+        if (attrs == null) return;
+        String playerId = (String) attrs.get("playerId");
+        if (playerId == null) return;
+
+        GameObject game = gameStore.getGame(gameCode);
+        if (game == null) return;
+
+        String text = payload.get("text") instanceof String s ? s : "";
+        UserSelectionsState state = game.getSelectionState(playerId);
+        if (state != null) {
+            state.setTextFieldInput(text);
+        }
     }
 
     @GetMapping("/games/{gameCode}/vote/banish")

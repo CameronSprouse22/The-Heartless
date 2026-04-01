@@ -1,5 +1,6 @@
 package com.heartless.gamethread;
 
+import com.heartless.event.AfterLifeGameEvent;
 import com.heartless.event.EventObjectInterface;
 import com.heartless.event.TestingEvent;
 import com.heartless.model.GameObject;
@@ -21,18 +22,15 @@ public class GameThread {
 
     private final GameObject gameObject;
     private final GameCriteriaObject gameCriteriaObject;
-    private final List<EventObjectInterface> eventList;
+    private 
+    List<EventObjectInterface> eventList;
     private EventObjectInterface currentEvent;
-    private String statusString;
+    private String statusString = "";
 
 
-    public GameThread(GameObject gameObject,
-                      GameCriteriaObject gameCriteriaObject,
-                      List<EventObjectInterface> eventList) {
+    public GameThread(GameObject gameObject, GameCriteriaObject gameCriteriaObject) {
         this.gameObject = gameObject;
         this.gameCriteriaObject = gameCriteriaObject;
-        this.eventList = eventList;
-        this.statusString = "";
     }
 
     /**
@@ -131,15 +129,19 @@ public class GameThread {
 
     /**
      * Build a GameState snapshot for the given player.
-     * Delegates to the current event's getGameState if one is active,
-     * otherwise falls back to the game's stored MenuControl.
+     * If the player is dead, returns AfterLifeGameEvent state.
+     * Otherwise delegates to the current event's getGameState.
      */
     public GameState buildGameState(Player player) {
+        if (player.isDead()) {
+            log.debug("Player {} is dead — returning AfterLifeGameEvent state", player.getName());
+            return new AfterLifeGameEvent(gameObject).getGameState();
+        }
         if (currentEvent != null) {
             log.debug("Active event: {}", currentEvent.getClass().getSimpleName());
             return currentEvent.getGameState();
         }
         log.debug("No active event — using stored MenuControl");
         return GameState.fromMenuControl(gameObject.getMenuControl(), gameObject);
-    }
+    }p
 }

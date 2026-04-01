@@ -2,6 +2,7 @@ package com.heartless.service;
 
 import com.heartless.model.GameObject;
 import com.heartless.model.Player;
+import com.heartless.model.UserSelectionsState;
 import com.heartless.model.Vote;
 import com.heartless.model.enums.PlayerStatusEnum;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -94,6 +95,10 @@ public class VotingService {
 
         Vote vote = new Vote(voter, target);
         votes.add(vote);
+
+        // Track submit in per-player selection state
+        UserSelectionsState selState = game.getSelectionState(voterId);
+        if (selState != null) { selState.setSubmitPressed(true); }
 
         Map<String, Object> result = new HashMap<>();
         result.put("voteRecorded", true);
@@ -202,6 +207,10 @@ public class VotingService {
         voteRecord.put("targetNames", targetNames);
 
         murderVotes.computeIfAbsent(gameCode, k -> Collections.synchronizedList(new ArrayList<>())).add(voteRecord);
+
+        // Track submit in per-player selection state
+        UserSelectionsState selState = game.getSelectionState(voterId);
+        if (selState != null) { selState.setSubmitPressed(true); }
 
         // Broadcast to other traitors via WebSocket
         if (messagingTemplate != null) {

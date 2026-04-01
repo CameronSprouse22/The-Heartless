@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createGame, createTestGame } from '../services/api';
+import { createGame, createTestGame, startGame } from '../services/api';
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -32,13 +32,14 @@ function LoginPage() {
     setError('');
     try {
       const result = await createTestGame();
+      // Auto-start so menus are immediately usable
+      await startGame(result.gameCode, result.vipPlayerCode);
       // Store VIP (Alpha) credentials
       localStorage.setItem('playerCode', result.vipPlayerCode);
       localStorage.setItem('gameCode', result.gameCode);
-      localStorage.setItem('playerName', 'Alpha');
-      // Store all player codes for easy switching
+      localStorage.setItem('playerName', result.players[0].name);
       localStorage.setItem('testPlayers', JSON.stringify(result.players));
-      navigate(`/lobby/${result.gameCode}`);
+      navigate('/test-dashboard');
     } catch (err) {
       setError(err.message);
     }

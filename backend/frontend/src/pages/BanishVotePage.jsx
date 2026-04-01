@@ -8,7 +8,7 @@ import { connect, disconnect, subscribe, send } from '../services/websocket';
 function BanishVotePage() {
   const { gameCode, playerName } = useParams();
   const navigate = useNavigate();
-  const playerCode = localStorage.getItem('playerCode');
+  const playerCode = sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode');
   const [candidates, setCandidates] = useState([]);
   const [selected, setSelected] = useState(null);
   const [nameInput, setNameInput] = useState('');
@@ -172,7 +172,12 @@ function BanishVotePage() {
           type="text"
           placeholder={selected ? 'Confirm player name...' : 'Select a player first'}
           value={nameInput}
-          onChange={e => setNameInput(e.target.value)}
+          onChange={e => {
+            setNameInput(e.target.value);
+            if (stompConnected.current) {
+              try { send(`/app/games/${gameCode}/vote-text`, { text: e.target.value }); } catch (_) { /* ignore */ }
+            }
+          }}
           disabled={!selected}
           style={{
             padding: '0.5rem',

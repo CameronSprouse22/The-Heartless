@@ -8,7 +8,7 @@ import { connect, disconnect, subscribe, send } from '../services/websocket';
 function MurderVotePage() {
   const { gameCode, playerName } = useParams();
   const navigate = useNavigate();
-  const playerCode = localStorage.getItem('playerCode');
+  const playerCode = sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode');
   const [candidates, setCandidates] = useState([]);
   const [selected, setSelected] = useState([]);
   const [submitted, setSubmitted] = useState(false);

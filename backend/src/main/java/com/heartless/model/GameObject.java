@@ -5,7 +5,9 @@ import com.heartless.model.enums.GameStageEnum;
 import com.heartless.model.enums.GameStatusEnum;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -29,6 +31,7 @@ public class GameObject {
     private Long endGameTime;
     private String lastMurderId;
     private MenuControl menuControl;
+    private final Map<String, UserSelectionsState> selectionStateMap;
 
     public GameObject(String gameIdCode) {
         this.gameId = ID_GENERATOR.getAndIncrement();
@@ -45,6 +48,7 @@ public class GameObject {
         this.endGameTime = null;
         this.lastMurderId = null;
         this.menuControl = new MenuControl();
+        this.selectionStateMap = new HashMap<>();
     }
 
     // --- State transitions ---
@@ -118,6 +122,43 @@ public class GameObject {
     public void setLastMurderId(String lastMurderId) { this.lastMurderId = lastMurderId; }
     public MenuControl getMenuControl() { return menuControl; }
     public void setMenuControl(MenuControl menuControl) { this.menuControl = menuControl; }
+
+    // --- Selection State ---
+
+    /**
+     * Clears and re-populates the selection state map with a fresh
+     * {@link UserSelectionsState} for each player ID.
+     * Must be called at the start of each vote event.
+     *
+     * @param playerIds IDs of all players participating in the vote event
+     */
+    public void initSelectionStates(List<String> playerIds) {
+        selectionStateMap.clear();
+        for (String pid : playerIds) {
+            selectionStateMap.put(pid, new UserSelectionsState());
+        }
+    }
+
+    /**
+     * Returns the {@link UserSelectionsState} for the given player,
+     * or {@code null} if the player has no entry (state not initialised).
+     *
+     * @param playerId the player's unique ID
+     * @return the player's selection state, or {@code null}
+     */
+    public UserSelectionsState getSelectionState(String playerId) {
+        return selectionStateMap.get(playerId);
+    }
+
+    /**
+     * Returns the full selection state map (player ID → state).
+     * Used by event implementations to expose all players' states.
+     *
+     * @return the live map — do not modify directly
+     */
+    public Map<String, UserSelectionsState> getSelectionStateMap() {
+        return selectionStateMap;
+    }
 
     /**
      * Find a player by their unique ID.
