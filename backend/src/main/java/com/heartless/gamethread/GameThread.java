@@ -22,8 +22,7 @@ public class GameThread {
 
     private final GameObject gameObject;
     private final GameCriteriaObject gameCriteriaObject;
-    private 
-    List<EventObjectInterface> eventList;
+    private List<EventObjectInterface> eventList;
     private EventObjectInterface currentEvent;
     private String statusString = "";
 
@@ -31,6 +30,14 @@ public class GameThread {
     public GameThread(GameObject gameObject, GameCriteriaObject gameCriteriaObject) {
         this.gameObject = gameObject;
         this.gameCriteriaObject = gameCriteriaObject;
+        this.eventList = new java.util.ArrayList<>();
+    }
+
+    public GameThread(GameObject gameObject, GameCriteriaObject gameCriteriaObject,
+                      List<EventObjectInterface> eventList) {
+        this.gameObject = gameObject;
+        this.gameCriteriaObject = gameCriteriaObject;
+        this.eventList = eventList != null ? eventList : new java.util.ArrayList<>();
     }
 
     /**
@@ -143,5 +150,5 @@ public class GameThread {
         }
         log.debug("No active event — using stored MenuControl");
         return GameState.fromMenuControl(gameObject.getMenuControl(), gameObject);
-    }p
+    }
 }
