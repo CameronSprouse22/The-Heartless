@@ -170,6 +170,12 @@ class GameThreadTest {
         }
 
         @Override
+        public long getEventTime() { return 300_000L; }
+
+        @Override
+        public long getEventEndTime() { return System.currentTimeMillis() + 300_000L; }
+
+        @Override
         public void execute() { log.add(name); }
     }
 }

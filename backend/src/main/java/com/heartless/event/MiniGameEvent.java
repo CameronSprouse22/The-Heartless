@@ -1,5 +1,6 @@
 package com.heartless.event;
 
+import com.heartless.config.GameConfigurations;
 import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 public class MiniGameEvent implements EventObjectInterface {
 
     private final GameObject game;
+    private final long startTime = System.currentTimeMillis();
 
     public MiniGameEvent(GameObject game) {
         this.game = game;
@@ -43,6 +45,16 @@ public class MiniGameEvent implements EventObjectInterface {
         mc.setAllChatEnabled(true);
         mc.setTraitorChatEnabled(true);
         mc.setIndividualChatEnabled(true);
-        return GameState.fromMenuControl(mc, game);
+        return GameState.fromEvent(mc, game, this);
+    }
+
+    @Override
+    public long getEventTime() {
+        return GameConfigurations.MINI_GAME_EVENT_DURATION_MS;
+    }
+
+    @Override
+    public long getEventEndTime() {
+        return startTime + getEventTime();
     }
 }

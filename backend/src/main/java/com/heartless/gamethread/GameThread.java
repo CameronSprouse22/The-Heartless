@@ -67,7 +67,7 @@ public class GameThread {
         while (gameCriteriaObject.checkGameConditions(gameObject)
                 && roundsPlayed < MAX_ROUNDS) {
             log.debug("Starting round {} — gameId={}", gameObject.getRound(), gameObject.getGameId());
-            runSingleRound();
+            runCurrentEvent();
             roundsPlayed++;
             if (!gameCriteriaObject.checkGameConditions(gameObject)) {
                 log.info("Game criteria met after round {} — gameId={}", roundsPlayed, gameObject.getGameId());
@@ -83,23 +83,36 @@ public class GameThread {
     }
 
     /**
-     * Execute all events in sequence for a single round.
+     * Execute the current event for this round.
+     * Ends the game early if the event has timed out.
      */
-    public void runSingleRound() {
+    public void runCurrentEvent() {
         RoundObject round = new RoundObject(
                 Math.max(1, gameObject.getRound()));
         gameObject.addRound(round);
 
-        for (EventObjectInterface event : eventList) {
-            if (event.checkStartConditions()) {
-                log.debug("Executing event {} — round={} gameId={}",
-                        event.getClass().getSimpleName(), gameObject.getRound(), gameObject.getGameId());
-                this.currentEvent = event;
-                event.execute();
-            } else {
-                log.trace("Skipping event {} (conditions not met) — round={}",
-                        event.getClass().getSimpleName(), gameObject.getRound());
+        if (currentEvent == null) {
+            log.warn("No current event to run — gameId={}", gameObject.getGameId());
+            return;
+        }
+        if (System.currentTimeMillis() >= currentEvent.getEventEndTime()) {
+            log.info("Event {} timed out — ending round early. gameId={}",
+                    currentEvent.getClass().getSimpleName(), gameObject.getGameId());
+            gameEnd();
+            return;
+        }
+        if (currentEvent.checkStartConditions()) {
+            log.debug("Executing event {} — round={} gameId={}",
+                    currentEvent.getClass().getSimpleName(), gameObject.getRound(), gameObject.getGameId());
+            currentEvent.execute();
+            if (System.currentTimeMillis() >= currentEvent.getEventEndTime()) {
+                log.info("Event {} expired after execute — ending round. gameId={}",
+                        currentEvent.getClass().getSimpleName(), gameObject.getGameId());
+                gameEnd();
             }
+        } else {
+            log.trace("Skipping event {} (conditions not met) — round={}",
+                    currentEvent.getClass().getSimpleName(), gameObject.getRound());
         }
     }
 

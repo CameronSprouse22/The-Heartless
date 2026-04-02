@@ -30,4 +30,16 @@ public interface EventObjectInterface {
      * custom to each event implementation.
      */
     GameState getGameState();
+
+    /**
+     * Returns the total configured duration for this event in milliseconds,
+     * sourced from {@link com.heartless.config.GameConfigurations}.
+     */
+    long getEventTime();
+
+    /**
+     * Returns the absolute epoch millisecond timestamp when this event expires.
+     * Computed as {@code startTime + getEventTime()}.
+     */
+    long getEventEndTime();
 }

@@ -1,5 +1,6 @@
 package com.heartless.gamethread;
 
+import com.heartless.event.EventObjectInterface;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
 
@@ -19,17 +20,31 @@ public class GameState {
     private final String gameStatus;
     private final int round;
     private final String statusString;
- 
+    private final String eventType;
+    private final long eventEndTime;
+
     public GameState(List<Map<String, Object>> menuItems,
                      String currentEvent,
                      String gameStatus,
                      int round,
                      String statusString) {
+        this(menuItems, currentEvent, gameStatus, round, statusString, "", 0L);
+    }
+
+    public GameState(List<Map<String, Object>> menuItems,
+                     String currentEvent,
+                     String gameStatus,
+                     int round,
+                     String statusString,
+                     String eventType,
+                     long eventEndTime) {
         this.menuItems = menuItems;
         this.currentEvent = currentEvent;
         this.gameStatus = gameStatus;
         this.round = round;
         this.statusString = statusString;
+        this.eventType = eventType;
+        this.eventEndTime = eventEndTime;
     }
 
     public List<Map<String, Object>> getMenuItems() { return menuItems; }
@@ -37,6 +52,8 @@ public class GameState {
     public String getGameStatus() { return gameStatus; }
     public int getRound() { return round; }
     public String getStatusString() { return statusString; }
+    public String getEventType() { return eventType; }
+    public long getEventEndTime() { return eventEndTime; }
 
     public Map<String, Object> toMap() {
         Map<String, Object> result = new HashMap<>();
@@ -45,22 +62,39 @@ public class GameState {
         result.put("currentTask", currentEvent);
         result.put("statusString", statusString);
         result.put("menuItems", menuItems);
+        result.put("eventType", eventType);
+        result.put("eventEndTime", eventEndTime);
         return result;
     }
 
     /**
-     * Build a GameState from a MenuControl and GameObject.
+     * Build a GameState from a MenuControl and GameObject (no event timing).
      */
     public static GameState fromMenuControl(MenuControl mc, GameObject game) {
         List<Map<String, Object>> menuItems = buildMenuItems(mc);
         String statusString = deriveStatusString(game);
-        return new GameState(
-                menuItems,
-                game.getCurrentTask(),
-                game.getGameStatus().name(),
-                game.getRound(),
-                statusString
-        );
+        return new GameState(menuItems, game.getCurrentTask(),
+                game.getGameStatus().name(), game.getRound(), statusString, "", 0L);
+    }
+
+    /**
+     * Build a GameState from a MenuControl, GameObject, and active event.
+     * Populates eventType (human-readable) and eventEndTime (epoch ms).
+     */
+    public static GameState fromEvent(MenuControl mc, GameObject game, EventObjectInterface event) {
+        List<Map<String, Object>> menuItems = buildMenuItems(mc);
+        String statusString = deriveStatusString(game);
+        String eventType = deriveEventType(event);
+        return new GameState(menuItems, game.getCurrentTask(),
+                game.getGameStatus().name(), game.getRound(), statusString,
+                eventType, event.getEventEndTime());
+    }
+
+    private static String deriveEventType(EventObjectInterface event) {
+        String name = event.getClass().getSimpleName()
+                .replaceAll("GameEvent$", "")
+                .replaceAll("Event$", "");
+        return name.replaceAll("([a-z])([A-Z])", "$1 $2");
     }
 
     /**

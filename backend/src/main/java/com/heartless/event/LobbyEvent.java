@@ -1,5 +1,6 @@
 package com.heartless.event;
 
+import com.heartless.config.GameConfigurations;
 import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 public class LobbyEvent implements EventObjectInterface {
 
     private final GameObject game;
+    private final long startTime = System.currentTimeMillis();
 
     public LobbyEvent(GameObject game) {
         this.game = game;
@@ -39,6 +41,16 @@ public class LobbyEvent implements EventObjectInterface {
         MenuControl mc = new MenuControl();
         mc.setAllChatEnabled(true);
         mc.setGameOptionsEnabled(true);
-        return GameState.fromMenuControl(mc, game);
+        return GameState.fromEvent(mc, game, this);
+    }
+
+    @Override
+    public long getEventTime() {
+        return GameConfigurations.LOBBY_EVENT_DURATION_MS;
+    }
+
+    @Override
+    public long getEventEndTime() {
+        return startTime + getEventTime();
     }
 }

@@ -3,6 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getMenu, getPlayerInfo, resolvePlayer, getChatCounts } from '../services/api';
 import GameStatusBar from '../components/GameStatusBar';
 
+function formatTime(ms) {
+  if (!ms || ms <= 0) return '0:00';
+  const totalSec = Math.ceil(ms / 1000);
+  const minutes = Math.floor(totalSec / 60);
+  const seconds = totalSec % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
 function MenuPage() {
   const { gameCode, playerName } = useParams();
   const navigate = useNavigate();
@@ -14,6 +22,8 @@ function MenuPage() {
   );
   const [chatCounts, setChatCounts] = useState({});
   const lastSeenCounts = useRef(JSON.parse(sessionStorage.getItem('lastSeenCounts') || '{}'));
+  const [timeLeftMs, setTimeLeftMs] = useState(0);
+  const eventEndTimeRef = useRef(0);
 
   // Resolve playerName to playerCode on mount
   useEffect(() => {
@@ -44,6 +54,10 @@ function MenuPage() {
       ]);
       setMenu(menuData);
       setPlayerInfo(infoData);
+      if (menuData.eventEndTime) {
+        eventEndTimeRef.current = menuData.eventEndTime;
+        setTimeLeftMs(Math.max(0, menuData.eventEndTime - Date.now()));
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -62,7 +76,17 @@ function MenuPage() {
 
   useEffect(() => {
     loadMenu();
+    const refresh = setInterval(loadMenu, 5000);
+    return () => clearInterval(refresh);
   }, [loadMenu]);
+
+  // 1-second local countdown driven by server-provided epoch end time
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setTimeLeftMs(Math.max(0, eventEndTimeRef.current - Date.now()));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
 
   useEffect(() => {
     loadChatCounts();
@@ -157,6 +181,28 @@ function MenuPage() {
 
       <div style={{ padding: '1rem', maxWidth: '400px', margin: '0 auto', width: '100%' }}>
         <h2>Game Menu</h2>
+
+        {menu.eventType && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1rem',
+            padding: '0.5rem 0.75rem',
+            background: '#1a237e',
+            color: 'white',
+            borderRadius: '6px',
+            fontSize: '0.95rem',
+            fontWeight: 'bold',
+          }}>
+            <span>📋 {menu.eventType}</span>
+            <span style={{
+              fontFamily: 'monospace',
+              fontSize: '1rem',
+              color: timeLeftMs < 60000 ? '#FF5252' : '#A5D6A7',
+            }}>⏱ {formatTime(timeLeftMs)}</span>
+          </div>
+        )}
 
         {playerInfo && playerInfo.card && (
           <div style={{
