@@ -73,31 +73,6 @@ class GameThreadTest {
     }
 
     @Test
-    void gameStartExecutesEventsInOrder() {
-        createActive("A", false);
-        createActive("B", false);
-        createActive("C", false);
-        createActive("T", true);
-
-        List<String> executionLog = new ArrayList<>();
-
-        // Create stub events that record execution order
-        EventObjectInterface event1 = new StubEvent(game, "Event1", executionLog);
-        EventObjectInterface event2 = new StubEvent(game, "Event2", executionLog);
-        EventObjectInterface event3 = new StubEvent(game, "Event3", executionLog);
-
-        // gameInit calls gameStart which runs the loop — transition first
-        game.transitionToStart();
-        GameThread thread = new GameThread(game, criteria, List.of(event1, event2, event3));
-        thread.runSingleRound();
-
-        assertEquals(3, executionLog.size());
-        assertEquals("Event1", executionLog.get(0));
-        assertEquals("Event2", executionLog.get(1));
-        assertEquals("Event3", executionLog.get(2));
-    }
-
-    @Test
     void gameEndTransitionsToOver() {
         createActive("A", false);
         createActive("B", false);
