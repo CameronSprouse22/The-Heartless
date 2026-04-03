@@ -10,6 +10,8 @@ import com.heartless.model.enums.GameStatusEnum;
 import com.heartless.model.enums.PlayerStatusEnum;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -32,17 +34,20 @@ public class GameService {
     private final InvitationService invitationService;
     private final TraitorSelectionService traitorSelectionService;
     private final CardAssignmentService cardAssignmentService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // Maps playerCode -> { gameCode, playerId }
     private final ConcurrentHashMap<String, String[]> playerCodeMap = new ConcurrentHashMap<>();
 
     public GameService(GameStore gameStore, InvitationService invitationService,
                        TraitorSelectionService traitorSelectionService,
-                       CardAssignmentService cardAssignmentService) {
+                       CardAssignmentService cardAssignmentService,
+                       @Lazy SimpMessagingTemplate messagingTemplate) {
         this.gameStore = gameStore;
         this.invitationService = invitationService;
         this.traitorSelectionService = traitorSelectionService;
         this.cardAssignmentService = cardAssignmentService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     public Map<String, Object> createGame(String playerName) {
@@ -161,6 +166,7 @@ public class GameService {
         GameCriteriaObject criteria = new GameCriteriaObject();
         TestingEvent testingEvent = new TestingEvent(game);
         GameThread gameThread = new GameThread(game, criteria, List.of(testingEvent));
+        gameThread.setMessagingTemplate(messagingTemplate);
         gameThread.gameInit();
         testingEvent.execute();
         gameStore.putGameThread(gameCode, gameThread);

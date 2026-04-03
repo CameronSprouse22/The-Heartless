@@ -76,6 +76,25 @@ export default function GameEventPage() {
         } else if (msg.type === 'EVENT_RESOLVED') {
           setResolved(true);
           setResolvedResult(msg);
+        } else if (msg.type === 'ROUND_STARTED') {
+          // New round started — reset state and re-fetch event config
+          setResolved(false);
+          setResolvedResult(null);
+          setSelectedItems(new Set());
+          setTextInput('');
+          setSubmissionStatus('NONE');
+          setDisagreement('');
+          setPlayers([]);
+          getEventState(gameCode, playerCode)
+            .then((data) => {
+              setConfig(data.config);
+              if (data.mySelection && data.mySelection.selectedItems) {
+                setSelectedItems(new Set(data.mySelection.selectedItems));
+                if (data.mySelection.textInput) setTextInput(data.mySelection.textInput);
+                if (data.mySelection.submissionStatus) setSubmissionStatus(data.mySelection.submissionStatus);
+              }
+            })
+            .catch(() => {});
         }
       });
 

@@ -9,8 +9,11 @@ import com.heartless.model.RoundObject;
 import com.heartless.model.enums.GameStatusEnum;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Orchestrates the full game lifecycle: Init → Start → End → Over.
@@ -25,6 +28,7 @@ public class GameThread {
     private List<EventObjectInterface> eventList;
     private EventObjectInterface currentEvent;
     private String statusString = "";
+    private SimpMessagingTemplate messagingTemplate;
 
 
     public GameThread(GameObject gameObject, GameCriteriaObject gameCriteriaObject) {
@@ -38,6 +42,10 @@ public class GameThread {
         this.gameObject = gameObject;
         this.gameCriteriaObject = gameCriteriaObject;
         this.eventList = eventList != null ? eventList : new java.util.ArrayList<>();
+    }
+
+    public void setMessagingTemplate(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
     }
 
     /**
@@ -54,32 +62,41 @@ public class GameThread {
     private static final int MAX_ROUNDS = 100;
 
     /**
-     * Main game loop: iterate rounds executing events until criteria met.
+     * Main game loop: runs in a background thread, waits for each event to
+     * expire, then broadcasts ROUND_STARTED for the next round.
      */
     public void gameStart() {
-        currentEvent = new TestingEvent(gameObject);
-        log.info("Game starting — gameId={}", gameObject.getGameId());
-        this.statusString = "Round " + gameObject.getRound();
-        gameObject.setCurrentTask("In progress");
-        int roundsPlayed = 0;
+        this.statusString = "Round 0";
+        Thread gameLoop = new Thread(() -> {
+            int roundsPlayed = 0;
+            while (roundsPlayed < MAX_ROUNDS) {
+                currentEvent = new TestingEvent(gameObject);
+                this.statusString = "Round " + roundsPlayed++;
+                log.info("Game loop round {} — gameId={}", roundsPlayed, gameObject.getGameIdCode());
 
-        // Run rounds while game should continue
-        while (gameCriteriaObject.checkGameConditions(gameObject)
-                && roundsPlayed < MAX_ROUNDS) {
-            log.debug("Starting round {} — gameId={}", gameObject.getRound(), gameObject.getGameId());
-            runCurrentEvent();
-            roundsPlayed++;
-            if (!gameCriteriaObject.checkGameConditions(gameObject)) {
-                log.info("Game criteria met after round {} — gameId={}", roundsPlayed, gameObject.getGameId());
-                break;
+                RoundObject round = new RoundObject(Math.max(1, gameObject.getRound()));
+                gameObject.addRound(round);
+                currentEvent.execute();
+
+                broadcastRoundStarted();
+
+                long waitTime = currentEvent.getEventEndTime() - System.currentTimeMillis();
+                if (waitTime > 0) {
+                    try {
+                        Thread.sleep(waitTime);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        log.info("Game loop interrupted — gameId={}", gameObject.getGameIdCode());
+                        return;
+                    }
+                }
+
+                gameObject.incrementRound();
             }
-            gameObject.incrementRound();
-            this.statusString = "Round " + gameObject.getRound();
-        }
-
-        if (roundsPlayed >= MAX_ROUNDS) {
-            log.warn("Game reached MAX_ROUNDS ({}) without satisfying criteria — gameId={}", MAX_ROUNDS, gameObject.getGameId());
-        }
+            gameEnd();
+        }, "game-loop-" + gameObject.getGameIdCode());
+        gameLoop.setDaemon(true);
+        gameLoop.start();
     }
 
     /**
@@ -105,7 +122,7 @@ public class GameThread {
             log.debug("Executing event {} — round={} gameId={}",
                     currentEvent.getClass().getSimpleName(), gameObject.getRound(), gameObject.getGameId());
             currentEvent.execute();
-            if (System.currentTimeMillis() >= currentEvent.getEventEndTime()) {
+            while (System.currentTimeMillis() >= currentEvent.getEventEndTime() && !currentEvent.checkEndConditions()) {
                 log.info("Event {} expired after execute — ending round. gameId={}",
                         currentEvent.getClass().getSimpleName(), gameObject.getGameId());
                 gameEnd();
@@ -125,6 +142,17 @@ public class GameThread {
         gameObject.setCurrentTask("Finished");
         gameObject.transitionToOver();
         log.info("Game over — gameId={}", gameObject.getGameId());
+    }
+
+    private void broadcastRoundStarted() {
+        if (messagingTemplate == null) return;
+        String gameCode = gameObject.getGameIdCode();
+        Map<String, Object> msg = new LinkedHashMap<>();
+        msg.put("type", "ROUND_STARTED");
+        msg.put("round", gameObject.getRound());
+        msg.put("eventEndTime", currentEvent != null ? currentEvent.getEventEndTime() : 0L);
+        messagingTemplate.convertAndSend("/topic/games/" + gameCode + "/event", msg);
+        log.debug("Broadcast ROUND_STARTED — gameId={} round={}", gameCode, gameObject.getRound());
     }
 
     public GameObject getGameObject() {
