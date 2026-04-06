@@ -160,7 +160,13 @@ public class ChatService {
 
         if (recipientPlayerIds.isEmpty()) return;
 
-        String preview = text.length() > 100 ? text.substring(0, 100) + "\u2026" : text;
+        String preview;
+        if ("individual".equals(channelName)) {
+            String time = new java.text.SimpleDateFormat("hh:mm a").format(new java.util.Date());
+            preview = "Sent at " + time;
+        } else {
+            preview = text.length() > 100 ? text.substring(0, 100) + "\u2026" : text;
+        }
         pushNotificationService.notifyPlayers(gameCode, recipientPlayerIds, senderName, preview, channelName, notifType);
     }
 

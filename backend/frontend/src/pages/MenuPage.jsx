@@ -162,21 +162,36 @@ function MenuPage() {
   };
 
   const handleNavigate = (id) => {
-    // Mark the channel as seen when entering
     const channelKey = channelKeyMap[id];
-    if (channelKey) {
-      markChannelSeen(channelKey);
-    }
+    if (channelKey) markChannelSeen(channelKey);
     switch (id) {
-      case 'traitor-chat': navigate(`/chat/${gameCode}/traitors`); break;
-      case 'all-chat': navigate(`/chat/${gameCode}/all`); break;
+      case 'game':            navigate(`/event/${gameCode}`); break;
+      case 'traitor-chat':   navigate(`/chat/${gameCode}/traitors`); break;
+      case 'all-chat':       navigate(`/chat/${gameCode}/all`); break;
       case 'individual-chat': navigate(`/chat/${gameCode}/individual`); break;
-      case 'dead-chat': navigate(`/chat/${gameCode}/dead`); break;
-      case 'banish-vote': navigate(`/vote/${gameCode}/${encodeURIComponent(playerName)}/banish`); break;
-      case 'murder-vote': navigate(`/vote/${gameCode}/${encodeURIComponent(playerName)}/murder`); break;
+      case 'dead-chat':      navigate(`/chat/${gameCode}/dead`); break;
+      case 'banish-vote':    navigate(`/vote/${gameCode}/${encodeURIComponent(playerName)}/banish`); break;
+      case 'murder-vote':    navigate(`/vote/${gameCode}/${encodeURIComponent(playerName)}/murder`); break;
+      case 'actions':        navigate(`/actions/${gameCode}`); break;
+      case 'game-options':   navigate(`/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`); break;
+      case 'game-logs':      navigate(`/logs/${gameCode}`); break;
       default: break;
     }
   };
+
+  // Fixed display order — server menuItems control enabled/visible per id
+  const menuItemMap = Object.fromEntries((menu?.menuItems || []).map(i => [i.id, i]));
+  const MENU_ORDER = [
+    { id: 'game',            label: '🎮 Game' },
+    { id: 'banish-vote',     label: '� Banish Vote' },
+    { id: 'murder-vote',     label: '🩸 Murder Vote' },
+    { id: 'all-chat',        label: '💬 All Chat' },
+    { id: 'traitor-chat',    label: '👤 Traitor Chat' },
+    { id: 'individual-chat', label: '🕵️ Individual Chat' },
+    { id: 'actions',         label: '⚡ Actions' },
+    { id: 'game-options',    label: '⚙️ Options' },
+    { id: 'game-logs',       label: '📜 Game Logs' },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -258,19 +273,22 @@ function MenuPage() {
           </div>
         )}
 
-        {menu.menuItems.map((item) => {
-          if (!item.visible) return null;
-          if (item.id === 'game-options') return null;
-          const channelKey = channelKeyMap[item.id];
+        {MENU_ORDER.map(({ id, label }) => {
+          const serverItem = menuItemMap[id];
+          // Items not in the server list default to visible+enabled
+          const visible = serverItem ? serverItem.visible : true;
+          const enabled = serverItem ? serverItem.enabled : true;
+          if (!visible) return null;
+          const channelKey = channelKeyMap[id];
           const unread = channelKey ? getUnreadCount(channelKey) : 0;
           return (
-            <div key={item.id} style={{ position: 'relative', marginBottom: '0.5rem' }}>
+            <div key={id} style={{ position: 'relative', marginBottom: '0.5rem' }}>
               <button
-                onClick={() => item.enabled && handleNavigate(item.id)}
-                disabled={!item.enabled}
-                style={buttonStyle(item.enabled)}
+                onClick={() => enabled && handleNavigate(id)}
+                disabled={!enabled}
+                style={buttonStyle(enabled)}
               >
-                {item.label}
+                {label}
               </button>
               {unread > 0 && (
                 <div style={badgeStyle}>
@@ -280,24 +298,6 @@ function MenuPage() {
             </div>
           );
         })}
-
-        {(() => {
-          const gameOptionsItem = menu.menuItems.find(i => i.id === 'game-options');
-          const enabled = gameOptionsItem ? gameOptionsItem.enabled : true;
-          const visible = gameOptionsItem ? gameOptionsItem.visible : true;
-          if (!visible) return null;
-          return (
-            <div style={{ marginBottom: '0.5rem' }}>
-              <button
-                onClick={() => enabled && navigate(`/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`)}
-                disabled={!enabled}
-                style={buttonStyle(enabled)}
-              >
-                ⚙️ Game Options
-              </button>
-            </div>
-          );
-        })()}
       </div>
 
       {error && <p style={{ color: 'red', padding: '1rem' }}>{error}</p>}
