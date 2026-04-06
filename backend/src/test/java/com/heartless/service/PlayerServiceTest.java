@@ -25,7 +25,7 @@ class PlayerServiceTest {
     void setUp() {
         gameStore = new GameStore();
         invitationService = org.mockito.Mockito.mock(InvitationService.class);
-        gameService = new GameService(gameStore, invitationService, new TraitorSelectionService(), new CardAssignmentService(), null);
+        gameService = new GameService(gameStore, invitationService, new TraitorSelectionService(), new CardAssignmentService(), null, null);
         playerService = new PlayerService(gameStore, gameService);
 
         Map<String, Object> created = gameService.createGame("VIP");

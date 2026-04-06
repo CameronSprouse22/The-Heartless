@@ -3,6 +3,7 @@ package com.heartless.controller;
 import com.heartless.model.GameObject;
 import com.heartless.model.Player;
 import com.heartless.model.UserSelectionsState;
+import com.heartless.push.PushNotificationService;
 import com.heartless.service.GameService;
 import com.heartless.service.GameStore;
 import com.heartless.service.VotingService;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api")
@@ -26,13 +29,21 @@ public class VoteController {
     private final GameService gameService;
     private final GameStore gameStore;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PushNotificationService pushNotificationService;
+
+    /** Tracks "gameCode:round" keys where a banish-vote push has already been sent this round. */
+    private final Set<String> banishNotifiedRounds = ConcurrentHashMap.newKeySet();
+    /** Tracks "gameCode:round" keys where a murder-vote push has already been sent this round. */
+    private final Set<String> murderNotifiedRounds = ConcurrentHashMap.newKeySet();
 
     public VoteController(VotingService votingService, GameService gameService,
-                          GameStore gameStore, SimpMessagingTemplate messagingTemplate) {
+                          GameStore gameStore, SimpMessagingTemplate messagingTemplate,
+                          PushNotificationService pushNotificationService) {
         this.votingService = votingService;
         this.gameService = gameService;
         this.gameStore = gameStore;
         this.messagingTemplate = messagingTemplate;
+        this.pushNotificationService = pushNotificationService;
     }
 
     /** Broadcast live (pre-submit) selection to other players on the banish vote page and persist to backend state. */
@@ -153,6 +164,17 @@ public class VoteController {
         }
         try {
             var result = votingService.castBanishVote(gameCode, playerId, targetPlayerId);
+
+            // Fire one push per game per round the first time any player votes
+            GameObject game = gameStore.getGame(gameCode);
+            if (game != null) {
+                String key = gameCode + ":" + game.getRound() + ":banish";
+                if (banishNotifiedRounds.add(key)) {
+                    pushNotificationService.notifyGame(gameCode, "Vote-off",
+                            "Banish voting is underway — cast your vote now!");
+                }
+            }
+
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -195,6 +217,17 @@ public class VoteController {
         }
         try {
             var result = votingService.castMurderVote(gameCode, playerId, (List<String>) targetIds);
+
+            // Fire one push per game per round the first time any traitor votes
+            GameObject game = gameStore.getGame(gameCode);
+            if (game != null) {
+                String key = gameCode + ":" + game.getRound() + ":murder";
+                if (murderNotifiedRounds.add(key)) {
+                    pushNotificationService.notifyGame(gameCode, "Murder Vote",
+                            "The traitors are voting — check your menu!");
+                }
+            }
+
             return ResponseEntity.ok(result);
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));

@@ -57,4 +57,14 @@ public class PreVoteEvent implements EventObjectInterface {
     public long getEventEndTime() {
         return startTime + getEventTime();
     }
+
+    @Override
+    public String getStartNotification() {
+        return "The pre-vote discussion phase has started.";
+    }
+
+    @Override
+    public boolean checkForNotifications() {
+        return true;
+    }
 }

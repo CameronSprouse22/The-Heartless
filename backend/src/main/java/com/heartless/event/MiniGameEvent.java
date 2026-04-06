@@ -57,4 +57,14 @@ public class MiniGameEvent implements EventObjectInterface {
     public long getEventEndTime() {
         return startTime + getEventTime();
     }
+
+    @Override
+    public String getStartNotification() {
+        return "A mini game is starting!";
+    }
+
+    @Override
+    public boolean checkForNotifications() {
+        return true;
+    }
 }

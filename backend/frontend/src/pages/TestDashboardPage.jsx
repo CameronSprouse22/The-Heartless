@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createEvent } from '../services/api';
 
 function TestDashboardPage() {
   const navigate = useNavigate();
@@ -33,6 +34,51 @@ function TestDashboardPage() {
       window.location.href = menuUrl(player.name);
     } else {
       window.open(menuUrl(player.name), '_blank');
+    }
+  };
+
+  const [pushResult, setPushResult] = useState(null);
+  const handleTestPush = async () => {
+    setPushResult(null);
+    try {
+      const res = await fetch('/api/push/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameCode }),
+      });
+      const data = await res.json();
+      setPushResult(data.sent
+        ? `✓ Push sent to ${data.subscriberCount ?? '?'} subscriber(s)`
+        : `✗ Not sent (${JSON.stringify(data)})`);
+    } catch (e) {
+      setPushResult(`✗ Error: ${e.message}`);
+    }
+  };
+
+  const [eventResult, setEventResult] = useState(null);
+  const handleTestEvent = async () => {
+    setEventResult(null);
+    const playerCode = localStorage.getItem('playerCode');
+    if (!playerCode) {
+      setEventResult('✗ No playerCode in localStorage — open a player tab first');
+      return;
+    }
+    try {
+      await createEvent(gameCode, playerCode, {
+        title: 'Test Notification',
+        prompt: 'This is a test event notification!',
+        listOfItems: [],
+        singleAnswer: false,
+        showOthersSelections: false,
+        minNumberSelectedToSubmit: 0,
+        maxNumberSelectedToSubmit: 0,
+        endTime: 0,
+        inputString: false,
+        playersMustAgree: false,
+      });
+      setEventResult('✓ Event created — push should fire');
+    } catch (e) {
+      setEventResult(`✗ Error: ${e.message}`);
     }
   };
 
@@ -76,6 +122,68 @@ function TestDashboardPage() {
       >
         Open All Players (requires popup permission)
       </button>
+
+      {/* ── Push / Event test buttons ── */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+        <button
+          onClick={handleTestPush}
+          style={{
+            flex: 1,
+            padding: '0.65rem',
+            background: '#9C27B0',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '0.9rem',
+          }}
+        >
+          Send Test Push
+        </button>
+        <button
+          onClick={handleTestEvent}
+          style={{
+            flex: 1,
+            padding: '0.65rem',
+            background: '#FF5722',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '0.9rem',
+          }}
+        >
+          Fire Event Notification
+        </button>
+      </div>
+
+      {pushResult && (
+        <div style={{
+          padding: '0.5rem 0.75rem',
+          borderRadius: '4px',
+          background: pushResult.startsWith('✓') ? '#E8F5E9' : '#FFEBEE',
+          color: pushResult.startsWith('✓') ? '#2E7D32' : '#C62828',
+          marginBottom: '0.75rem',
+          fontSize: '0.85rem',
+        }}>
+          {pushResult}
+        </div>
+      )}
+
+      {eventResult && (
+        <div style={{
+          padding: '0.5rem 0.75rem',
+          borderRadius: '4px',
+          background: eventResult.startsWith('✓') ? '#E8F5E9' : '#FFEBEE',
+          color: eventResult.startsWith('✓') ? '#2E7D32' : '#C62828',
+          marginBottom: '0.75rem',
+          fontSize: '0.85rem',
+        }}>
+          {eventResult}
+        </div>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         {players.map((player, i) => (

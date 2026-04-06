@@ -74,4 +74,14 @@ public class AfterLifeGameEvent implements EventObjectInterface {
     public long getEventEndTime() {
         return startTime + getEventTime();
     }
+
+    @Override
+    public String getStartNotification() {
+        return "You have entered the afterlife.";
+    }
+
+    @Override
+    public boolean checkForNotifications() {
+        return true;
+    }
 }

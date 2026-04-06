@@ -56,4 +56,14 @@ public class TieBreakEvent implements EventObjectInterface {
     public long getEventEndTime() {
         return startTime + getEventTime();
     }
+
+    @Override
+    public String getStartNotification() {
+        return "It's a tie! Tiebreaker vote starting.";
+    }
+
+    @Override
+    public boolean checkForNotifications() {
+        return true;
+    }
 }

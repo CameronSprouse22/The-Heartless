@@ -1,6 +1,7 @@
 package com.heartless.service;
 
 import com.heartless.model.*;
+import com.heartless.push.PushNotificationService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -16,12 +17,15 @@ public class GameEventService {
 
     private final GameStore gameStore;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PushNotificationService pushNotificationService;
     private final ConcurrentHashMap<String, GameEventState> activeEvents = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-    public GameEventService(GameStore gameStore, SimpMessagingTemplate messagingTemplate) {
+    public GameEventService(GameStore gameStore, SimpMessagingTemplate messagingTemplate,
+                            PushNotificationService pushNotificationService) {
         this.gameStore = gameStore;
         this.messagingTemplate = messagingTemplate;
+        this.pushNotificationService = pushNotificationService;
     }
 
     public GameEventState createEvent(GameEventConfig config) {
@@ -37,6 +41,16 @@ public class GameEventService {
         }
 
         activeEvents.put(config.getGameCode(), state);
+
+        // Notify all subscribed players via Web Push
+        if (pushNotificationService != null) {
+            pushNotificationService.notifyGame(
+                    config.getGameCode(),
+                    config.getTitle(),
+                    config.getPrompt() != null && !config.getPrompt().isBlank()
+                            ? config.getPrompt() : config.getTitle() + " has started."
+            );
+        }
 
         // Schedule timeout if endTime is set
         if (config.getEndTime() > 0) {

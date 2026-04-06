@@ -62,4 +62,14 @@ public class TestingEvent implements EventObjectInterface {
     public long getEventEndTime() {
         return startTime + getEventTime();
     }
+
+    @Override
+    public String getStartNotification() {
+        return "Testing event started.";
+    }
+
+    @Override
+    public boolean checkForNotifications() {
+        return true;
+    }
 }

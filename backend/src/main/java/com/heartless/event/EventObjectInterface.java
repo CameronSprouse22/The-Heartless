@@ -42,4 +42,14 @@ public interface EventObjectInterface {
      * Computed as {@code startTime + getEventTime()}.
      */
     long getEventEndTime();
+
+    /**
+     * Returns the notification message broadcast to players when this event starts.
+     */
+    String getStartNotification();
+
+    /**
+     * Returns true if there are pending notifications for this event.
+     */
+    boolean checkForNotifications();
 }

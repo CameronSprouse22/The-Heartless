@@ -53,4 +53,14 @@ public class RevelMurderEvent implements EventObjectInterface {
     public long getEventEndTime() {
         return startTime + getEventTime();
     }
+
+    @Override
+    public String getStartNotification() {
+        return "The murder is being revealed.";
+    }
+
+    @Override
+    public boolean checkForNotifications() {
+        return true;
+    }
 }

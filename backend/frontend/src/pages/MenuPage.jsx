@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMenu, getPlayerInfo, resolvePlayer, getChatCounts } from '../services/api';
 import GameStatusBar from '../components/GameStatusBar';
+import useNotifications from '../services/useNotifications';
 
 function formatTime(ms) {
   if (!ms || ms <= 0) return '0:00';
@@ -24,6 +25,9 @@ function MenuPage() {
   const lastSeenCounts = useRef(JSON.parse(sessionStorage.getItem('lastSeenCounts') || '{}'));
   const [timeLeftMs, setTimeLeftMs] = useState(0);
   const eventEndTimeRef = useRef(0);
+
+  // Register this browser for Web Push so notifications arrive even when the tab is closed
+  const { permissionState, enableNotifications } = useNotifications(playerCode, gameCode);
 
   // Resolve playerName to playerCode on mount
   useEffect(() => {
@@ -58,8 +62,12 @@ function MenuPage() {
         eventEndTimeRef.current = menuData.eventEndTime;
         setTimeLeftMs(Math.max(0, menuData.eventEndTime - Date.now()));
       }
-    } catch (err) {
-      setError(err.message);
+    } catch (err) {      if (err.status === 403) {
+        sessionStorage.removeItem('playerCode');
+        localStorage.removeItem('playerCode');
+        navigate(`/join/${gameCode}`);
+        return;
+      }      setError(err.message);
     }
   }, [gameCode, playerCode]);
 
@@ -181,6 +189,38 @@ function MenuPage() {
 
       <div style={{ padding: '1rem', maxWidth: '400px', margin: '0 auto', width: '100%' }}>
         <h2>Game Menu</h2>
+
+        {permissionState === 'default' && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1rem',
+            padding: '0.5rem 0.75rem',
+            background: '#37474f',
+            color: 'white',
+            borderRadius: '6px',
+            fontSize: '0.9rem',
+          }}>
+            <span>🔔 Enable notifications to get game alerts</span>
+            <button
+              onClick={enableNotifications}
+              style={{
+                marginLeft: '0.75rem',
+                padding: '0.3rem 0.75rem',
+                background: '#FF9800',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Enable
+            </button>
+          </div>
+        )}
 
         {menu.eventType && (
           <div style={{

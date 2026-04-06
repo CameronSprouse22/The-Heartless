@@ -55,4 +55,14 @@ public class RecruitEvent implements EventObjectInterface {
     public long getEventEndTime() {
         return startTime + getEventTime();
     }
+
+    @Override
+    public String getStartNotification() {
+        return "Traitors are now recruiting.";
+    }
+
+    @Override
+    public boolean checkForNotifications() {
+        return true;
+    }
 }

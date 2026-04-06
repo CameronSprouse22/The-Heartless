@@ -4,6 +4,7 @@ import com.heartless.event.TestingEvent;
 import com.heartless.gamethread.GameCriteriaObject;
 import com.heartless.gamethread.GameThread;
 import com.heartless.model.Card;
+import com.heartless.push.PushNotificationService;
 import com.heartless.model.GameObject;
 import com.heartless.model.Player;
 import com.heartless.model.enums.GameStatusEnum;
@@ -35,6 +36,7 @@ public class GameService {
     private final TraitorSelectionService traitorSelectionService;
     private final CardAssignmentService cardAssignmentService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PushNotificationService pushNotificationService;
 
     // Maps playerCode -> { gameCode, playerId }
     private final ConcurrentHashMap<String, String[]> playerCodeMap = new ConcurrentHashMap<>();
@@ -42,12 +44,14 @@ public class GameService {
     public GameService(GameStore gameStore, InvitationService invitationService,
                        TraitorSelectionService traitorSelectionService,
                        CardAssignmentService cardAssignmentService,
-                       @Lazy SimpMessagingTemplate messagingTemplate) {
+                       @Lazy SimpMessagingTemplate messagingTemplate,
+                       PushNotificationService pushNotificationService) {
         this.gameStore = gameStore;
         this.invitationService = invitationService;
         this.traitorSelectionService = traitorSelectionService;
         this.cardAssignmentService = cardAssignmentService;
         this.messagingTemplate = messagingTemplate;
+        this.pushNotificationService = pushNotificationService;
     }
 
     public Map<String, Object> createGame(String playerName) {
@@ -167,6 +171,7 @@ public class GameService {
         TestingEvent testingEvent = new TestingEvent(game);
         GameThread gameThread = new GameThread(game, criteria, List.of(testingEvent));
         gameThread.setMessagingTemplate(messagingTemplate);
+        gameThread.setPushNotificationService(pushNotificationService);
         gameThread.gameInit();
         testingEvent.execute();
         gameStore.putGameThread(gameCode, gameThread);
@@ -195,6 +200,20 @@ public class GameService {
     public String getPlayerId(String playerCode) {
         String[] info = playerCodeMap.get(playerCode);
         return info != null ? info[1] : null;
+    }
+
+    public String getPlayerName(String playerCode) {
+        String[] info = playerCodeMap.get(playerCode);
+        if (info == null) return null;
+        String gc = info[0];
+        String pid = info[1];
+        GameObject game = gameStore.getGame(gc);
+        if (game == null) return null;
+        return game.getPlayerList().stream()
+                .filter(p -> p.getId().equals(pid))
+                .map(Player::getName)
+                .findFirst()
+                .orElse(null);
     }
 
     public String getGameCodeForPlayer(String playerCode) {

@@ -56,4 +56,14 @@ public class MurderEvent implements EventObjectInterface {
     public long getEventEndTime() {
         return startTime + getEventTime();
     }
+
+    @Override
+    public String getStartNotification() {
+        return "The murder phase has begun.";
+    }
+
+    @Override
+    public boolean checkForNotifications() {
+        return true;
+    }
 }

@@ -26,7 +26,7 @@ class GameServiceTest {
         invitationService = mock(InvitationService.class);
         traitorSelectionService = new TraitorSelectionService();
         cardAssignmentService = new CardAssignmentService();
-        gameService = new GameService(gameStore, invitationService, traitorSelectionService, cardAssignmentService, null);
+        gameService = new GameService(gameStore, invitationService, traitorSelectionService, cardAssignmentService, null, null);
     }
 
     // US1 tests - T021

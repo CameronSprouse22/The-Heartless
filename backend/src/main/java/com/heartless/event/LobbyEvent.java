@@ -53,4 +53,14 @@ public class LobbyEvent implements EventObjectInterface {
     public long getEventEndTime() {
         return startTime + getEventTime();
     }
+
+    @Override
+    public String getStartNotification() {
+        return "Welcome to the lobby!";
+    }
+
+    @Override
+    public boolean checkForNotifications() {
+        return true;
+    }
 }

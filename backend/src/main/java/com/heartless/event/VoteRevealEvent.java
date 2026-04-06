@@ -53,4 +53,14 @@ public class VoteRevealEvent implements EventObjectInterface {
     public long getEventEndTime() {
         return startTime + getEventTime();
     }
+
+    @Override
+    public String getStartNotification() {
+        return "The votes are being revealed.";
+    }
+
+    @Override
+    public boolean checkForNotifications() {
+        return true;
+    }
 }

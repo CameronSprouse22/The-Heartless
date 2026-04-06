@@ -50,7 +50,7 @@ public class GameEventConfig {
         this.inputString = inputString;
         this.playersMustAgree = playersMustAgree;
     }
-git 
+
     public String getEventId() { return eventId; }
     public String getGameCode() { return gameCode; }
     public String getTitle() { return title; }

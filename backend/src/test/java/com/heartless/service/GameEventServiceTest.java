@@ -36,7 +36,7 @@ class GameEventServiceTest {
         game.addPlayer(player2);
 
         gameStore.putGame("GAME01", game);
-         gameEventService = new GameEventService(gameStore, null);
+         gameEventService = new GameEventService(gameStore, null, null);
     }
 
     private GameEventConfig makeConfig(String gameCode, List<String> items, boolean singleAnswer) {

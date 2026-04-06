@@ -151,6 +151,12 @@ class GameThreadTest {
         public long getEventEndTime() { return System.currentTimeMillis() + 300_000L; }
 
         @Override
+        public String getStartNotification() { return name + " started."; }
+
+        @Override
+        public boolean checkForNotifications() { return true; }
+
+        @Override
         public void execute() { log.add(name); }
     }
 }

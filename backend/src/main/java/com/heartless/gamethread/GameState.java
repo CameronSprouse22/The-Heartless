@@ -22,13 +22,14 @@ public class GameState {
     private final String statusString;
     private final String eventType;
     private final long eventEndTime;
+    private final String startNotification;
 
     public GameState(List<Map<String, Object>> menuItems,
                      String currentEvent,
                      String gameStatus,
                      int round,
                      String statusString) {
-        this(menuItems, currentEvent, gameStatus, round, statusString, "", 0L);
+        this(menuItems, currentEvent, gameStatus, round, statusString, "", 0L, "");
     }
 
     public GameState(List<Map<String, Object>> menuItems,
@@ -38,6 +39,17 @@ public class GameState {
                      String statusString,
                      String eventType,
                      long eventEndTime) {
+        this(menuItems, currentEvent, gameStatus, round, statusString, eventType, eventEndTime, "");
+    }
+
+    public GameState(List<Map<String, Object>> menuItems,
+                     String currentEvent,
+                     String gameStatus,
+                     int round,
+                     String statusString,
+                     String eventType,
+                     long eventEndTime,
+                     String startNotification) {
         this.menuItems = menuItems;
         this.currentEvent = currentEvent;
         this.gameStatus = gameStatus;
@@ -45,6 +57,7 @@ public class GameState {
         this.statusString = statusString;
         this.eventType = eventType;
         this.eventEndTime = eventEndTime;
+        this.startNotification = startNotification != null ? startNotification : "";
     }
 
     public List<Map<String, Object>> getMenuItems() { return menuItems; }
@@ -54,6 +67,7 @@ public class GameState {
     public String getStatusString() { return statusString; }
     public String getEventType() { return eventType; }
     public long getEventEndTime() { return eventEndTime; }
+    public String getStartNotification() { return startNotification; }
 
     public Map<String, Object> toMap() {
         Map<String, Object> result = new HashMap<>();
@@ -64,6 +78,7 @@ public class GameState {
         result.put("menuItems", menuItems);
         result.put("eventType", eventType);
         result.put("eventEndTime", eventEndTime);
+        result.put("startNotification", startNotification);
         return result;
     }
 
@@ -87,7 +102,7 @@ public class GameState {
         String eventType = deriveEventType(event);
         return new GameState(menuItems, game.getCurrentTask(),
                 game.getGameStatus().name(), game.getRound(), statusString,
-                eventType, event.getEventEndTime());
+                eventType, event.getEventEndTime(), event.getStartNotification());
     }
 
     private static String deriveEventType(EventObjectInterface event) {

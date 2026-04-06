@@ -5,8 +5,15 @@ async function fetchJson(url, options = {}) {
   const response = await fetch(`${BASE_URL}${url}`, { ...options, headers });
 
   if (!response.ok) {
-    const errorBody = await response.text().catch(() => '');
-    const error = new Error(`API Error ${response.status}: ${errorBody || response.statusText}`);
+    const bodyText = await response.text().catch(() => '');
+    let message = response.statusText;
+    try {
+      const parsed = JSON.parse(bodyText);
+      message = parsed.error || parsed.message || message;
+    } catch {
+      if (bodyText) message = bodyText;
+    }
+    const error = new Error(message);
     error.status = response.status;
     throw error;
   }
