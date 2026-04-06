@@ -112,7 +112,7 @@ public class GameThread {
                     String notif = event.getStartNotification();
                     if (notif != null && !notif.isBlank()) {
                         pushNotificationService.notifyGame(
-                                gameObject.getGameIdCode(), notif, "");
+                                gameObject.getGameIdCode(), notif, "", "eventStarted");
                     }
                 }
                 if (System.currentTimeMillis() >= event.getEventEndTime()) {
@@ -136,6 +136,10 @@ public class GameThread {
         this.statusString = "Game Over";
         gameObject.setCurrentTask("Finished");
         gameObject.transitionToOver();
+        if (pushNotificationService != null) {
+            pushNotificationService.notifyGame(
+                    gameObject.getGameIdCode(), "Game Over", "The game has ended.", "eventEnding");
+        }
         log.info("Game over — gameId={}", gameObject.getGameId());
     }
 

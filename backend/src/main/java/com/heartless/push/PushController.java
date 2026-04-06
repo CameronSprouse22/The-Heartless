@@ -111,4 +111,65 @@ public class PushController {
                 "If you see this, push notifications are working!");
         return ResponseEntity.ok(Map.of("sent", true, "subscriberCount", subs.size()));
     }
+
+    /**
+     * Get the current notification preferences for a player.
+     * GET /api/push/prefs
+     */
+    @GetMapping("/prefs")
+    public ResponseEntity<Map<String, Object>> getPrefs(
+            @RequestHeader("X-Player-Code") String playerCode) {
+
+        String playerId = gameService.getPlayerId(playerCode);
+        if (playerId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
+        }
+
+        PushSubscriptionStore.NotifPrefs prefs = subscriptionStore.getPrefs(playerId);
+        return ResponseEntity.ok(prefsToMap(prefs));
+    }
+
+    /**
+     * Update notification preferences for a player.
+     * PUT /api/push/prefs
+     * Body: { allChats, individualChats, traitorChats, eventStarted, eventEnding }
+     */
+    @PutMapping("/prefs")
+    public ResponseEntity<Map<String, Object>> updatePrefs(
+            @RequestHeader("X-Player-Code") String playerCode,
+            @RequestBody Map<String, Object> body) {
+
+        String playerId = gameService.getPlayerId(playerCode);
+        if (playerId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
+        }
+
+        PushSubscriptionStore.NotifPrefs current = subscriptionStore.getPrefs(playerId);
+        PushSubscriptionStore.NotifPrefs updated = new PushSubscriptionStore.NotifPrefs(
+                getBool(body, "allChats",        current.allChats()),
+                getBool(body, "individualChats", current.individualChats()),
+                getBool(body, "traitorChats",    current.traitorChats()),
+                getBool(body, "eventStarted",    current.eventStarted()),
+                getBool(body, "eventEnding",     current.eventEnding())
+        );
+
+        subscriptionStore.updatePrefs(playerId, updated);
+        return ResponseEntity.ok(prefsToMap(updated));
+    }
+
+    private Map<String, Object> prefsToMap(PushSubscriptionStore.NotifPrefs prefs) {
+        Map<String, Object> map = new java.util.HashMap<>();
+        map.put("allChats",        prefs.allChats());
+        map.put("individualChats", prefs.individualChats());
+        map.put("traitorChats",    prefs.traitorChats());
+        map.put("eventStarted",    prefs.eventStarted());
+        map.put("eventEnding",     prefs.eventEnding());
+        return map;
+    }
+
+    private boolean getBool(Map<String, Object> map, String key, boolean defaultValue) {
+        Object val = map.get(key);
+        if (val instanceof Boolean b) return b;
+        return defaultValue;
+    }
 }

@@ -260,6 +260,7 @@ function MenuPage() {
 
         {menu.menuItems.map((item) => {
           if (!item.visible) return null;
+          if (item.id === 'game-options') return null;
           const channelKey = channelKeyMap[item.id];
           const unread = channelKey ? getUnreadCount(channelKey) : 0;
           return (
@@ -279,6 +280,24 @@ function MenuPage() {
             </div>
           );
         })}
+
+        {(() => {
+          const gameOptionsItem = menu.menuItems.find(i => i.id === 'game-options');
+          const enabled = gameOptionsItem ? gameOptionsItem.enabled : true;
+          const visible = gameOptionsItem ? gameOptionsItem.visible : true;
+          if (!visible) return null;
+          return (
+            <div style={{ marginBottom: '0.5rem' }}>
+              <button
+                onClick={() => enabled && navigate(`/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`)}
+                disabled={!enabled}
+                style={buttonStyle(enabled)}
+              >
+                ⚙️ Game Options
+              </button>
+            </div>
+          );
+        })()}
       </div>
 
       {error && <p style={{ color: 'red', padding: '1rem' }}>{error}</p>}

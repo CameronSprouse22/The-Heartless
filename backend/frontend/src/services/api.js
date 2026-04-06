@@ -173,3 +173,18 @@ export function getEventPlayers(gameCode, playerCode) {
     headers: authHeader(playerCode),
   });
 }
+
+// Push notification preferences
+export function getNotifPrefs(playerCode) {
+  return fetchJson('/push/prefs', {
+    headers: authHeader(playerCode),
+  });
+}
+
+export function updateNotifPrefs(playerCode, prefs) {
+  return fetchJson('/push/prefs', {
+    method: 'PUT',
+    headers: authHeader(playerCode),
+    body: JSON.stringify(prefs),
+  });
+}

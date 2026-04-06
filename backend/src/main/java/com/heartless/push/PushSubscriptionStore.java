@@ -15,6 +15,9 @@ public class PushSubscriptionStore {
     private final ConcurrentHashMap<String, List<PlayerPushSubscription>> subscriptions =
             new ConcurrentHashMap<>();
 
+    /** playerId → notification preferences (global, not per-game) */
+    private final ConcurrentHashMap<String, NotifPrefs> prefsMap = new ConcurrentHashMap<>();
+
     public void save(String gameCode, String playerId, String playerName,
                      String endpoint, String p256dh, String auth) {
         subscriptions.compute(gameCode, (key, existing) -> {
@@ -39,10 +42,30 @@ public class PushSubscriptionStore {
         });
     }
 
+    public void updatePrefs(String playerId, NotifPrefs prefs) {
+        prefsMap.put(playerId, prefs);
+    }
+
+    public NotifPrefs getPrefs(String playerId) {
+        return prefsMap.getOrDefault(playerId, NotifPrefs.defaults());
+    }
+
     public record PlayerPushSubscription(
             String playerId,
             String playerName,
             String endpoint,
             String p256dh,
             String auth) {}
+
+    public record NotifPrefs(
+            boolean allChats,
+            boolean individualChats,
+            boolean traitorChats,
+            boolean eventStarted,
+            boolean eventEnding) {
+
+        public static NotifPrefs defaults() {
+            return new NotifPrefs(true, true, true, true, true);
+        }
+    }
 }

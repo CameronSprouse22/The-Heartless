@@ -3,6 +3,7 @@ package com.heartless.service;
 import com.heartless.model.GameObject;
 import com.heartless.model.Player;
 import com.heartless.operation.channel.AllPlayersChannel;
+import com.heartless.push.PushNotificationService;
 import com.heartless.operation.channel.ChannelObjectInterface;
 import com.heartless.operation.channel.DeadPlayersChannel;
 import com.heartless.operation.channel.TraitorsChannel;
@@ -18,12 +19,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ChatService {
 
     private final GameStore gameStore;
+    private final PushNotificationService pushNotificationService;
 
     // gameCode -> channelName -> channel instance
     private final ConcurrentHashMap<String, Map<String, ChannelObjectInterface>> gameChannels = new ConcurrentHashMap<>();
 
-    public ChatService(GameStore gameStore) {
+    public ChatService(GameStore gameStore, PushNotificationService pushNotificationService) {
         this.gameStore = gameStore;
+        this.pushNotificationService = pushNotificationService;
     }
 
     public Map<String, Object> sendMessage(String gameCode, String senderId, String channelName, String text, String recipientId) {
@@ -52,6 +55,9 @@ public class ChatService {
         result.put("senderName", last.senderName());
         result.put("text", last.text());
         result.put("timestamp", last.timestamp());
+
+        notifyChatRecipients(gameCode, game, senderId, channelName, recipientId, sender.getName(), text);
+
         return result;
     }
 
@@ -123,6 +129,39 @@ public class ChatService {
         if (!eligible.contains(player)) {
             throw new SecurityException("Player not eligible for channel: " + channelName);
         }
+    }
+
+    private void notifyChatRecipients(String gameCode, GameObject game, String senderId,
+                                       String channelName, String recipientId,
+                                       String senderName, String text) {
+        String notifType = switch (channelName) {
+            case "all"        -> "allChats";
+            case "individual" -> "individualChats";
+            case "traitors"   -> "traitorChats";
+            default           -> "allChats";
+        };
+
+        List<String> recipientPlayerIds = switch (channelName) {
+            case "all" -> game.getPlayerList().stream()
+                    .filter(p -> !p.getId().equals(senderId))
+                    .map(Player::getId).toList();
+            // Traitor chat access is open to all active players until security is enforced;
+            // notify every active non-dead player except the sender.
+            case "traitors" -> game.getPlayerList().stream()
+                    .filter(p -> !p.isDead() && !p.getId().equals(senderId))
+                    .map(Player::getId).toList();
+            case "dead" -> game.getPlayerList().stream()
+                    .filter(p -> p.isDead() && !p.getId().equals(senderId))
+                    .map(Player::getId).toList();
+            case "individual" -> (recipientId != null && !recipientId.isBlank())
+                    ? List.of(recipientId) : List.of();
+            default -> List.of();
+        };
+
+        if (recipientPlayerIds.isEmpty()) return;
+
+        String preview = text.length() > 100 ? text.substring(0, 100) + "\u2026" : text;
+        pushNotificationService.notifyPlayers(gameCode, recipientPlayerIds, senderName, preview, channelName, notifType);
     }
 
     private GameObject getGameOrThrow(String gameCode) {

@@ -4,6 +4,7 @@ import com.heartless.model.GameObject;
 import com.heartless.model.Player;
 import com.heartless.model.enums.PlayerStatusEnum;
 import com.heartless.operation.channel.ChannelObjectInterface;
+import com.heartless.push.PushNotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 class ChatServiceTest {
 
@@ -24,7 +26,7 @@ class ChatServiceTest {
     @BeforeEach
     void setUp() {
         gameStore = new GameStore();
-        chatService = new ChatService(gameStore);
+        chatService = new ChatService(gameStore, mock(PushNotificationService.class));
 
         game = new GameObject("CHAT01");
         alivePlayer = new Player("Alice", "alice@test.com", null);
