@@ -106,7 +106,6 @@ public class GameThread {
                 log.debug("Executing event {} — round={} gameId={}",
                         event.getClass().getSimpleName(), gameObject.getRound(), gameObject.getGameId());
                 this.currentEvent = event;
-                event.execute();
                 // Fire push notification when this event starts, if it requests one
                 if (event.checkForNotifications() && pushNotificationService != null) {
                     String notif = event.getStartNotification();
@@ -115,6 +114,7 @@ public class GameThread {
                                 gameObject.getGameIdCode(), notif, "", "eventStarted");
                     }
                 }
+                event.execute();
                 if (System.currentTimeMillis() >= event.getEventEndTime()) {
                     log.info("Event {} expired after execute — ending round. gameId={}",
                             event.getClass().getSimpleName(), gameObject.getGameId());
