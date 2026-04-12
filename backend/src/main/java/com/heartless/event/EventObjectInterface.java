@@ -1,6 +1,7 @@
 package com.heartless.event;
 
 import com.heartless.gamethread.GameState;
+import com.heartless.model.GameObject;
 import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
@@ -12,7 +13,7 @@ public interface EventObjectInterface {
 
     boolean checkStartConditions();
 
-    boolean checkEndConditions();
+    boolean endConditonsMeet(GameObject gameObject);
 
     /**
      * Returns the current selection state for all players in this event.

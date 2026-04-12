@@ -41,7 +41,7 @@ public class GameThread {
                       List<EventObjectInterface> eventList) {
         this.gameObject = gameObject;
         this.gameCriteriaObject = gameCriteriaObject;
-        this.eventList = eventList != null ? eventList : new java.util.ArrayList<>();
+        this.eventList = eventList != null ? new java.util.ArrayList<>(eventList) : new java.util.ArrayList<>();
     }
 
     /**
@@ -51,8 +51,10 @@ public class GameThread {
         log.info("Game initialising — gameId={}", gameObject.getGameId());
         this.statusString = "Lobby";
         gameObject.setCurrentTask("Waiting for players");
-        gameStart();
-        log.debug("gameInit complete — status={}", this.statusString);
+        Thread gameThread = new Thread(this::gameStart, "game-thread-" + gameObject.getGameId());
+        gameThread.setDaemon(true);
+        gameThread.start();
+        log.debug("gameInit complete — game loop started in background — status={}", this.statusString);
     }
 
     private static final int MAX_ROUNDS = 100;
@@ -61,71 +63,86 @@ public class GameThread {
      * Main game loop: iterate rounds executing events until criteria met.
      */
     public void gameStart() {
-        currentEvent = new TestingEvent(gameObject);
+        
         log.info("Game starting — gameId={}", gameObject.getGameId());
         this.statusString = "Round " + gameObject.getRound();
         gameObject.setCurrentTask("In progress");
-        int roundsPlayed = 0;
 
-        // Run rounds while game should continue
-        while (gameCriteriaObject.checkGameConditions(gameObject)
-                && roundsPlayed < MAX_ROUNDS) {
-            log.debug("Starting round {} — gameId={}", gameObject.getRound(), gameObject.getGameId());
-            runSingleRound();
-            roundsPlayed++;
-            if (!gameCriteriaObject.checkGameConditions(gameObject)) {
-                log.info("Game criteria met after round {} — gameId={}", roundsPlayed, gameObject.getGameId());
-                break;
-            }
-            gameObject.incrementRound();
-            this.statusString = "Round " + gameObject.getRound();
+        for(int i = 0;i<100;i++){
+            eventList.add(new TestingEvent(gameObject));  
         }
-
-        if (roundsPlayed >= MAX_ROUNDS) {
-            log.warn("Game reached MAX_ROUNDS ({}) without satisfying criteria — gameId={}", MAX_ROUNDS, gameObject.getGameId());
-        }
-    }
-
-    /**
-     * Execute all events in sequence for a single round.
-     * Stops early if an event's time has expired.
-     */
-    public void runSingleRound() {
-        RoundObject round = new RoundObject(
-                Math.max(1, gameObject.getRound()));
-        gameObject.addRound(round);
 
         for (EventObjectInterface event : eventList) {
-            if (System.currentTimeMillis() >= event.getEventEndTime()) {
-                log.info("Event {} timed out — ending round early. gameId={}",
+            if (!event.checkStartConditions()) {
+                log.trace("Skipping event {} (conditions not met) — gameId={}",
+                        event.getClass().getSimpleName(), gameObject.getGameId());
+                continue;
+            }
+            currentEvent = event;
+            log.debug("Starting event {} — gameId={}", event.getClass().getSimpleName(), gameObject.getGameId());
+            boolean completed = runCurrentEvent();
+            if (!completed) {
+                log.info("Event {} did not complete — ending game. gameId={}",
                         event.getClass().getSimpleName(), gameObject.getGameId());
                 gameEnd();
                 return;
             }
-            if (event.checkStartConditions()) {
-                log.debug("Executing event {} — round={} gameId={}",
-                        event.getClass().getSimpleName(), gameObject.getRound(), gameObject.getGameId());
-                this.currentEvent = event;
-                event.execute();
-                // Fire push notification when this event starts, if it requests one
-                if (event.checkForNotifications() && pushNotificationService != null) {
-                    String notif = event.getStartNotification();
-                    if (notif != null && !notif.isBlank()) {
-                        pushNotificationService.notifyGame(
-                                gameObject.getGameIdCode(), notif, "", "eventStarted");
-                    }
-                }
-                if (System.currentTimeMillis() >= event.getEventEndTime()) {
-                    log.info("Event {} expired after execute — ending round. gameId={}",
-                            event.getClass().getSimpleName(), gameObject.getGameId());
-                    gameEnd();
-                    return;
-                }
-            } else {
-                log.trace("Skipping event {} (conditions not met) — round={}",
-                        event.getClass().getSimpleName(), gameObject.getRound());
+            if (!gameCriteriaObject.checkGameConditions(gameObject)) {
+                log.info("Game criteria met after event {} — gameId={}",
+                        event.getClass().getSimpleName(), gameObject.getGameId());
+                break;
             }
         }
+    }
+
+    /**
+     * Runs the current event until its end condition is met or its time expires.
+     *
+     * @return true if the event completed normally, false if it timed out
+     */
+    public boolean runCurrentEvent() {
+        if (currentEvent == null) {
+            log.warn("runCurrentEvent called with no current event — gameId={}", gameObject.getGameId());
+            return false;
+        }
+        if (System.currentTimeMillis() >= currentEvent.getEventEndTime()) {
+            log.info("Event {} timed out before executing — gameId={}",
+                    currentEvent.getClass().getSimpleName(), gameObject.getGameId());
+            return false;
+        }
+        log.debug("Running event {} — round={} gameId={}",
+                currentEvent.getClass().getSimpleName(), gameObject.getRound(), gameObject.getGameId());
+        // Execute once to initialise event state
+        currentEvent.execute();
+        // Broadcast event start over WebSocket so all connected clients update
+        if (messagingTemplate != null) {
+            messagingTemplate.convertAndSend(
+                    "/topic/games/" + gameObject.getGameIdCode() + "/event",
+                    java.util.Map.of(
+                            "type", "EVENT_STARTED",
+                            "event", currentEvent.getClass().getSimpleName()
+                    )
+            );
+        }
+        // Fire web push notification now that event state is ready
+        if (currentEvent.checkForNotifications() && pushNotificationService != null) {
+            String notif = currentEvent.getStartNotification();
+            if (notif != null && !notif.isBlank()) {
+                pushNotificationService.notifyGame(
+                        gameObject.getGameIdCode(), notif, "", "eventStarted");
+            }
+        }
+        // Loop until end condition is satisfied or time runs out
+        while (!currentEvent.endConditonsMeet(gameObject)) {
+            if (System.currentTimeMillis() >= currentEvent.getEventEndTime()) {
+                log.info("Event {} timed out — gameId={}",
+                        currentEvent.getClass().getSimpleName(), gameObject.getGameId());
+                break;
+            }
+            currentEvent.execute();
+            try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+        }
+        return true;
     }
 
     /**

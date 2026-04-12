@@ -21,7 +21,7 @@ public class TieBreakEvent implements EventObjectInterface {
     public boolean checkStartConditions() { return true; }
 
     @Override
-    public boolean checkEndConditions() { return true; }
+    public boolean endConditonsMeet(GameObject gameObject) { return true; }
 
     @Override
     public ArrayList<UserSelectionsState> getUsersSelections() {

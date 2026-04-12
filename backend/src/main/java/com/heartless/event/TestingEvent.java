@@ -11,7 +11,7 @@ import java.util.ArrayList;
 public class TestingEvent implements EventObjectInterface {
 
     private final GameObject game;
-    private final long startTime = System.currentTimeMillis();
+    private Long startTime = null;
 
     public TestingEvent(GameObject game) {
         this.game = game;
@@ -21,7 +21,9 @@ public class TestingEvent implements EventObjectInterface {
     public boolean checkStartConditions() { return true; }
 
     @Override
-    public boolean checkEndConditions() { return true; }
+    public boolean endConditonsMeet(GameObject gameObject) {
+        return System.currentTimeMillis() >= getEventEndTime();
+    }
 
     @Override
     public ArrayList<UserSelectionsState> getUsersSelections() {
@@ -30,6 +32,7 @@ public class TestingEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
+        if (startTime == null) startTime = System.currentTimeMillis();
         MenuControl mc = buildAllEnabledMenu();
         game.setMenuControl(mc);
     }
@@ -60,6 +63,7 @@ public class TestingEvent implements EventObjectInterface {
 
     @Override
     public long getEventEndTime() {
+        if (startTime == null) return Long.MAX_VALUE;
         return startTime + getEventTime();
     }
 

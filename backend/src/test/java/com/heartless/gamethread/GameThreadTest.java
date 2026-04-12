@@ -132,7 +132,7 @@ class GameThreadTest {
         public boolean checkStartConditions() { return true; }
 
         @Override
-        public boolean checkEndConditions() { return true; }
+        public boolean endConditonsMeet(com.heartless.model.GameObject gameObject) { return true; }
 
         @Override
         public ArrayList<UserSelectionsState> getUsersSelections() {
