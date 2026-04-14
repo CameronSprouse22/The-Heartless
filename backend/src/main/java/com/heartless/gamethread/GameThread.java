@@ -29,6 +29,8 @@ public class GameThread {
     private String statusString = "";
     private PushNotificationService pushNotificationService;
     private SimpMessagingTemplate messagingTemplate;
+    private final java.util.ArrayList<GameRoundObject> roundObjects = new java.util.ArrayList<>();
+    private GameRoundObject currentRoundObject;
 
 
     public GameThread(GameObject gameObject, GameCriteriaObject gameCriteriaObject) {
@@ -186,6 +188,12 @@ public class GameThread {
 
     public void setPushNotificationService(PushNotificationService pushNotificationService) {
         this.pushNotificationService = pushNotificationService;
+    }
+
+    public java.util.ArrayList<GameRoundObject> getRoundObjects() { return roundObjects; }
+    public GameRoundObject getCurrentRoundObject() { return currentRoundObject; }
+    public void setCurrentRoundObject(GameRoundObject currentRoundObject) {
+        this.currentRoundObject = currentRoundObject;
     }
 
     /**

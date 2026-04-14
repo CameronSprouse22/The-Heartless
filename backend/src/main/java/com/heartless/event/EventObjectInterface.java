@@ -53,4 +53,11 @@ public interface EventObjectInterface {
      * Returns true if there are pending notifications for this event.
      */
     boolean checkForNotifications();
+
+    /**
+     * Called when the event ends without full completion (time ran out or skipped).
+     * Implementations should resolve any unsubmitted player votes or pending state.
+     * Default is a no-op — override in events that manage vote state.
+     */
+    default void resolveEvent() {}
 }
