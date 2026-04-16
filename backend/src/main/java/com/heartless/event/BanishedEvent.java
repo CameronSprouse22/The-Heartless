@@ -8,12 +8,12 @@ import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
 
-public class VoteEvent implements EventObjectInterface {
+public class BanishedEvent implements EventObjectInterface {
 
     private final GameObject game;
     private final long startTime = System.currentTimeMillis();
 
-    public VoteEvent(GameObject game) {
+    public BanishedEvent(GameObject game) {
         this.game = game;
     }
 
@@ -62,6 +62,11 @@ public class VoteEvent implements EventObjectInterface {
     @Override
     public String getStartNotification() {
         return "Voting has begun!";
+    }
+
+    @Override
+    public String getInitialMessage() {
+        return "It's time to vote. Choose wisely — one player will be banished.";
     }
 
     @Override

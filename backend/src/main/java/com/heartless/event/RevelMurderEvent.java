@@ -60,6 +60,11 @@ public class RevelMurderEvent implements EventObjectInterface {
     }
 
     @Override
+    public String getInitialMessage() {
+        return "The truth comes to light. Watch to see who the traitors chose to murder.";
+    }
+
+    @Override
     public boolean checkForNotifications() {
         return true;
     }

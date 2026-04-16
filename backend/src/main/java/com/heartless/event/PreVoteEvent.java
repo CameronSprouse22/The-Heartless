@@ -64,6 +64,11 @@ public class PreVoteEvent implements EventObjectInterface {
     }
 
     @Override
+    public String getInitialMessage() {
+        return "Discuss among yourselves. Who do you suspect is a traitor?";
+    }
+
+    @Override
     public boolean checkForNotifications() {
         return true;
     }

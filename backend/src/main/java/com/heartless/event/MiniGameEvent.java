@@ -64,6 +64,11 @@ public class MiniGameEvent implements EventObjectInterface {
     }
 
     @Override
+    public String getInitialMessage() {
+        return "A mini game is about to begin. Get ready!";
+    }
+
+    @Override
     public boolean checkForNotifications() {
         return true;
     }

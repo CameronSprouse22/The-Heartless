@@ -8,12 +8,12 @@ import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
 
-public class MurderEvent implements EventObjectInterface {
+public class RevealBanishVoteEvent implements EventObjectInterface {
 
     private final GameObject game;
-    private final long startTime = System.currentTimeMillis();
+    private Long startTime = null;
 
-    public MurderEvent(GameObject game) {
+    public RevealBanishVoteEvent(GameObject game) {
         this.game = game;
     }
 
@@ -21,7 +21,9 @@ public class MurderEvent implements EventObjectInterface {
     public boolean checkStartConditions() { return true; }
 
     @Override
-    public boolean endConditonsMeet(GameObject gameObject) { return true; }
+    public boolean endConditonsMeet(GameObject gameObject) {
+        return startTime != null && System.currentTimeMillis() >= getEventEndTime();
+    }
 
     @Override
     public ArrayList<UserSelectionsState> getUsersSelections() {
@@ -30,41 +32,40 @@ public class MurderEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
-        game.initSelectionStates(game.getPlayerList().stream()
-                .map(p -> p.getId())
-                .toList());
+        if (startTime == null) startTime = System.currentTimeMillis();
         MenuControl mc = new MenuControl();
-        mc.setMurderVoteEnabled(true);
-        mc.setTraitorChatEnabled(true);
+        mc.setAllChatEnabled(true);
+        mc.setGameLogsEnabled(true);
         game.setMenuControl(mc);
     }
 
     @Override
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
-        mc.setMurderVoteEnabled(true);
-        mc.setTraitorChatEnabled(true);
+        mc.setAllChatEnabled(true);
+        mc.setGameLogsEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 
     @Override
     public long getEventTime() {
-        return GameConfigurations.MURDER_EVENT_DURATION_MS;
+        return GameConfigurations.REVEAL_BANISH_VOTE_EVENT_DURATION_MS;
     }
 
     @Override
     public long getEventEndTime() {
+        if (startTime == null) return Long.MAX_VALUE;
         return startTime + getEventTime();
     }
 
     @Override
     public String getStartNotification() {
-        return "The murder phase has begun.";
+        return "The banish vote results are being revealed.";
     }
 
     @Override
     public String getInitialMessage() {
-        return "The night falls. Traitors — select your target carefully.";
+        return "The votes are in. See who the group has chosen to banish.";
     }
 
     @Override

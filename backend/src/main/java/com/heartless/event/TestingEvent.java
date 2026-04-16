@@ -73,6 +73,11 @@ public class TestingEvent implements EventObjectInterface {
     }
 
     @Override
+    public String getInitialMessage() {
+        return "A testing event is underway.";
+    }
+
+    @Override
     public boolean checkForNotifications() {
         return true;
     }

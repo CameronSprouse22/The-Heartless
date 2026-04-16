@@ -154,6 +154,9 @@ class GameThreadTest {
         public String getStartNotification() { return name + " started."; }
 
         @Override
+        public String getInitialMessage() { return name + " initial message."; }
+
+        @Override
         public boolean checkForNotifications() { return true; }
 
         @Override

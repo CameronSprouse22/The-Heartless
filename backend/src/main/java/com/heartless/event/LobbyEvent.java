@@ -60,6 +60,11 @@ public class LobbyEvent implements EventObjectInterface {
     }
 
     @Override
+    public String getInitialMessage() {
+        return "Welcome! Wait here while all players join the game.";
+    }
+
+    @Override
     public boolean checkForNotifications() {
         return true;
     }

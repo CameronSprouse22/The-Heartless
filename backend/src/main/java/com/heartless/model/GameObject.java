@@ -32,6 +32,7 @@ public class GameObject {
     private String lastMurderId;
     private MenuControl menuControl;
     private final Map<String, UserSelectionsState> selectionStateMap;
+    private final Map<String, EventMessageDismissalState> initialMessageDismissalMap;
 
     public GameObject(String gameIdCode) {
         this.gameId = ID_GENERATOR.getAndIncrement();
@@ -49,6 +50,7 @@ public class GameObject {
         this.lastMurderId = null;
         this.menuControl = new MenuControl();
         this.selectionStateMap = new HashMap<>();
+        this.initialMessageDismissalMap = new HashMap<>();
     }
 
     // --- State transitions ---
@@ -122,6 +124,44 @@ public class GameObject {
     public void setLastMurderId(String lastMurderId) { this.lastMurderId = lastMurderId; }
     public MenuControl getMenuControl() { return menuControl; }
     public void setMenuControl(MenuControl menuControl) { this.menuControl = menuControl; }
+
+    // --- Selection State ---
+
+    // --- Initial Message Dismissal ---
+
+    /**
+     * Resets the initial-message dismissal state for all players at the start of a new event.
+     * Each player's dismissed flag is set to {@code false} so the message appears again.
+     */
+    public void initInitialMessageDismissalStates() {
+        initialMessageDismissalMap.clear();
+        for (Player player : playerList) {
+            initialMessageDismissalMap.put(player.getId(), new EventMessageDismissalState(player));
+        }
+    }
+
+    /**
+     * Returns {@code true} if the player has already dismissed the initial event message.
+     *
+     * @param playerId the player's unique ID
+     * @return {@code true} if dismissed, {@code false} if not yet dismissed or state not found
+     */
+    public boolean hasPlayerDismissedInitialMessage(String playerId) {
+        EventMessageDismissalState state = initialMessageDismissalMap.get(playerId);
+        return state != null && state.isDismissed();
+    }
+
+    /**
+     * Marks the initial event message as dismissed for the given player.
+     *
+     * @param playerId the player's unique ID
+     */
+    public void dismissInitialMessage(String playerId) {
+        EventMessageDismissalState state = initialMessageDismissalMap.get(playerId);
+        if (state != null) {
+            state.dismiss();
+        }
+    }
 
     // --- Selection State ---
 

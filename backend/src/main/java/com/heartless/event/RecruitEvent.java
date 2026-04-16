@@ -62,6 +62,11 @@ public class RecruitEvent implements EventObjectInterface {
     }
 
     @Override
+    public String getInitialMessage() {
+        return "The traitors are whispering in the shadows. A new recruit may be chosen.";
+    }
+
+    @Override
     public boolean checkForNotifications() {
         return true;
     }

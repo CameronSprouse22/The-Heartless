@@ -3,6 +3,7 @@ package com.heartless.gamethread;
 import com.heartless.event.AfterLifeGameEvent;
 import com.heartless.event.EventObjectInterface;
 import com.heartless.event.TestingEvent;
+import com.heartless.event.BanishedEvent;
 import com.heartless.model.GameObject;
 import com.heartless.push.PushNotificationService;
 import com.heartless.model.Player;
@@ -70,9 +71,11 @@ public class GameThread {
         this.statusString = "Round " + gameObject.getRound();
         gameObject.setCurrentTask("In progress");
 
-        for(int i = 0;i<100;i++){
+        for(int i = 0;i<1;i++){
             eventList.add(new TestingEvent(gameObject));  
         }
+
+        eventList.add(new BanishedEvent(gameObject));  
 
         for (EventObjectInterface event : eventList) {
             if (!event.checkStartConditions()) {

@@ -60,6 +60,11 @@ public class VoteRevealEvent implements EventObjectInterface {
     }
 
     @Override
+    public String getInitialMessage() {
+        return "The votes are being revealed. Prepare yourself.";
+    }
+
+    @Override
     public boolean checkForNotifications() {
         return true;
     }

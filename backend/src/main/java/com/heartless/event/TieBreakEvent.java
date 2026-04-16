@@ -63,6 +63,11 @@ public class TieBreakEvent implements EventObjectInterface {
     }
 
     @Override
+    public String getInitialMessage() {
+        return "It's a tie! Cast your vote again to break the deadlock.";
+    }
+
+    @Override
     public boolean checkForNotifications() {
         return true;
     }

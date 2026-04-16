@@ -55,6 +55,13 @@ public interface EventObjectInterface {
     boolean checkForNotifications();
 
     /**
+     * Returns the message shown to each player once when they first open the event page.
+     * The message is dismissed per-player and will not appear again after dismissal.
+     * Default returns an empty string — override in events that require an intro message.
+     */
+    String getInitialMessage();
+
+    /**
      * Called when the event ends without full completion (time ran out or skipped).
      * Implementations should resolve any unsubmitted player votes or pending state.
      * Default is a no-op — override in events that manage vote state.

@@ -81,6 +81,11 @@ public class AfterLifeGameEvent implements EventObjectInterface {
     }
 
     @Override
+    public String getInitialMessage() {
+        return "You have been eliminated, but the game is not over for you yet.";
+    }
+
+    @Override
     public boolean checkForNotifications() {
         return true;
     }
