@@ -138,7 +138,34 @@ public class GameController {
             } else {
                 gameState = GameState.fromMenuControl(game.getMenuControl(), game);
             }
-            return ResponseEntity.ok(gameState.toMap());
+            Map<String, Object> stateMap = gameState.toMap();
+            if (gameThread != null && gameThread.getCurrentEvent() != null) {
+                String initialMsg = gameThread.getCurrentEvent().getInitialMessage();
+                boolean dismissed = game.hasPlayerDismissedInitialMessage(playerId);
+                stateMap.put("initialMessage", initialMsg != null ? initialMsg : "");
+                stateMap.put("hasDismissedInitialMessage", dismissed);
+            }
+            return ResponseEntity.ok(stateMap);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/games/{gameCode}/dismiss-message")
+    public ResponseEntity<Map<String, Object>> dismissInitialMessage(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        String playerId = gameService.getPlayerId(playerCode);
+        if (playerId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
+        }
+        try {
+            GameObject game = gameService.getGameOrThrow(gameCode);
+            if (game.findPlayerById(playerId) == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
+            }
+            game.dismissInitialMessage(playerId);
+            return ResponseEntity.ok(Map.of("dismissed", true));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }

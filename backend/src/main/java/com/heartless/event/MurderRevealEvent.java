@@ -8,12 +8,12 @@ import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
 
-public class RevealBanishVoteEvent implements EventObjectInterface {
+public class MurderRevealEvent implements EventObjectInterface {
 
     private final GameObject game;
-    private Long startTime = null;
+    private final long startTime = System.currentTimeMillis();
 
-    public RevealBanishVoteEvent(GameObject game) {
+    public MurderRevealEvent(GameObject game) {
         this.game = game;
     }
 
@@ -21,9 +21,7 @@ public class RevealBanishVoteEvent implements EventObjectInterface {
     public boolean checkStartConditions() { return true; }
 
     @Override
-    public boolean endConditonsMeet(GameObject gameObject) {
-        return startTime != null && System.currentTimeMillis() >= getEventEndTime();
-    }
+    public boolean endConditonsMeet(GameObject gameObject) { return true; }
 
     @Override
     public ArrayList<UserSelectionsState> getUsersSelections() {
@@ -32,7 +30,6 @@ public class RevealBanishVoteEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
-        if (startTime == null) startTime = System.currentTimeMillis();
         MenuControl mc = new MenuControl();
         mc.setAllChatEnabled(true);
         mc.setGameLogsEnabled(true);
@@ -49,23 +46,22 @@ public class RevealBanishVoteEvent implements EventObjectInterface {
 
     @Override
     public long getEventTime() {
-        return GameConfigurations.REVEAL_BANISH_VOTE_EVENT_DURATION_MS;
+        return GameConfigurations.MURDER_REVEAL_EVENT_DURATION_MS;
     }
 
     @Override
     public long getEventEndTime() {
-        if (startTime == null) return Long.MAX_VALUE;
         return startTime + getEventTime();
     }
 
     @Override
     public String getStartNotification() {
-        return "The banish vote results are being revealed.";
+        return "The murder is being revealed.";
     }
 
     @Override
     public String getInitialMessage() {
-        return "The votes are in. See who the group has chosen to banish.";
+        return "The truth comes to light. Watch to see who the traitors chose to murder.";
     }
 
     @Override

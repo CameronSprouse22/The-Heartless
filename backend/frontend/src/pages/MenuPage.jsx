@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getMenu, getPlayerInfo, resolvePlayer, getChatCounts } from '../services/api';
+import { getMenu, getPlayerInfo, resolvePlayer, getChatCounts, dismissInitialMessage } from '../services/api';
 import GameStatusBar from '../components/GameStatusBar';
 import useNotifications from '../services/useNotifications';
 
@@ -25,6 +25,12 @@ function MenuPage() {
   const lastSeenCounts = useRef(JSON.parse(sessionStorage.getItem('lastSeenCounts') || '{}'));
   const [timeLeftMs, setTimeLeftMs] = useState(0);
   const eventEndTimeRef = useRef(0);
+  const [showInitialMessage, setShowInitialMessage] = useState(false);
+  const [initialMessage, setInitialMessage] = useState('');
+  const dismissedEventEndTimeRef = useRef(null);
+  // Track which eventEndTime we've already auto-navigated for (persisted across remounts)
+  const getAutoNavDone = () => Number(sessionStorage.getItem('autoNavDoneEventEndTime') || 0);
+  const setAutoNavDone = (t) => sessionStorage.setItem('autoNavDoneEventEndTime', String(t));
 
   // Register this browser for Web Push so notifications arrive even when the tab is closed
   const { permissionState, enableNotifications } = useNotifications(playerCode, gameCode);
@@ -61,6 +67,37 @@ function MenuPage() {
       if (menuData.eventEndTime) {
         eventEndTimeRef.current = menuData.eventEndTime;
         setTimeLeftMs(Math.max(0, menuData.eventEndTime - Date.now()));
+      }
+      const eventKey = menuData.eventEndTime || null;
+      const locallyDismissed = eventKey !== null && dismissedEventEndTimeRef.current === eventKey;
+      if (menuData.initialMessage && !menuData.hasDismissedInitialMessage && !locallyDismissed) {
+        setInitialMessage(menuData.initialMessage);
+        setShowInitialMessage(true);
+      } else if (!menuData.initialMessage || menuData.hasDismissedInitialMessage || locallyDismissed) {
+        setShowInitialMessage(false);
+      }
+
+      // Auto-navigate when exactly one server-controlled item is enabled
+      const enabledItems = (menuData.menuItems || []).filter(i => i.enabled && i.visible);
+      const currentEndTime = menuData.eventEndTime || 0;
+      if (enabledItems.length === 1 && currentEndTime && getAutoNavDone() !== currentEndTime) {
+        setAutoNavDone(currentEndTime);
+        sessionStorage.setItem('autoNavEventEndTime', String(currentEndTime));
+        sessionStorage.setItem('autoNavMenuPath', `/menu/${gameCode}/${encodeURIComponent(playerName)}`);
+        const navId = enabledItems[0].id;
+        const navPaths = {
+          'traitor-chat':    `/chat/${gameCode}/traitors`,
+          'all-chat':        `/chat/${gameCode}/all`,
+          'individual-chat': `/chat/${gameCode}/individual`,
+          'dead-chat':       `/chat/${gameCode}/dead`,
+          'banish-vote':     `/vote/${gameCode}/${encodeURIComponent(playerName)}/banish`,
+          'murder-vote':     `/vote/${gameCode}/${encodeURIComponent(playerName)}/murder`,
+          'actions':         `/actions/${gameCode}`,
+          'game-options':    `/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`,
+          'game-logs':       `/logs/${gameCode}`,
+        };
+        const dest = navPaths[navId];
+        if (dest) { navigate(dest); return; }
       }
     } catch (err) {      if (err.status === 403) {
         sessionStorage.removeItem('playerCode');
@@ -301,6 +338,55 @@ function MenuPage() {
       </div>
 
       {error && <p style={{ color: 'red', padding: '1rem' }}>{error}</p>}
+
+      {showInitialMessage && initialMessage && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.65)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '1rem',
+        }}>
+          <div style={{
+            background: '#1a237e',
+            color: 'white',
+            borderRadius: '12px',
+            padding: '2rem',
+            maxWidth: '360px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          }}>
+            <p style={{ fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+              {initialMessage}
+            </p>
+            <button
+              onClick={async () => {
+                dismissedEventEndTimeRef.current = eventEndTimeRef.current;
+                setShowInitialMessage(false);
+                try {
+                  await dismissInitialMessage(gameCode, playerCode);
+                } catch { /* ignore */ }
+              }}
+              style={{
+                padding: '0.6rem 2rem',
+                background: '#FF9800',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

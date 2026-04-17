@@ -8,12 +8,12 @@ import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
 
-public class RevelMurderEvent implements EventObjectInterface {
+public class PostBanishEvent implements EventObjectInterface {
 
     private final GameObject game;
-    private final long startTime = System.currentTimeMillis();
+    private Long startTime = null;
 
-    public RevelMurderEvent(GameObject game) {
+    public PostBanishEvent(GameObject game) {
         this.game = game;
     }
 
@@ -21,7 +21,9 @@ public class RevelMurderEvent implements EventObjectInterface {
     public boolean checkStartConditions() { return true; }
 
     @Override
-    public boolean endConditonsMeet(GameObject gameObject) { return true; }
+    public boolean endConditonsMeet(GameObject gameObject) {
+        return startTime != null && System.currentTimeMillis() >= getEventEndTime();
+    }
 
     @Override
     public ArrayList<UserSelectionsState> getUsersSelections() {
@@ -30,6 +32,7 @@ public class RevelMurderEvent implements EventObjectInterface {
 
     @Override
     public void execute() {
+        if (startTime == null) startTime = System.currentTimeMillis();
         MenuControl mc = new MenuControl();
         mc.setAllChatEnabled(true);
         mc.setGameLogsEnabled(true);
@@ -46,22 +49,23 @@ public class RevelMurderEvent implements EventObjectInterface {
 
     @Override
     public long getEventTime() {
-        return GameConfigurations.REVEL_MURDER_EVENT_DURATION_MS;
+        return GameConfigurations.POST_BANISH_EVENT_DURATION_MS;
     }
 
     @Override
     public long getEventEndTime() {
+        if (startTime == null) return Long.MAX_VALUE;
         return startTime + getEventTime();
     }
 
     @Override
     public String getStartNotification() {
-        return "The murder is being revealed.";
+        return "The banish vote results are being revealed.";
     }
 
     @Override
     public String getInitialMessage() {
-        return "The truth comes to light. Watch to see who the traitors chose to murder.";
+        return "The votes are in. See who the group has chosen to banish.";
     }
 
     @Override

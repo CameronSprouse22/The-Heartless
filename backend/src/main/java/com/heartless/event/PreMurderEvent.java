@@ -8,12 +8,12 @@ import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
 
-public class PreVoteEvent implements EventObjectInterface {
+public class PreMurderEvent implements EventObjectInterface {
 
     private final GameObject game;
     private final long startTime = System.currentTimeMillis();
 
-    public PreVoteEvent(GameObject game) {
+    public PreMurderEvent(GameObject game) {
         this.game = game;
     }
 
@@ -31,20 +31,20 @@ public class PreVoteEvent implements EventObjectInterface {
     @Override
     public void execute() {
         MenuControl mc = new MenuControl();
-        mc.setAllChatEnabled(true);
+        mc.setTraitorChatEnabled(true);
         game.setMenuControl(mc);
     }
 
     @Override
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
-        mc.setAllChatEnabled(true);
+        mc.setTraitorChatEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 
     @Override
     public long getEventTime() {
-        return GameConfigurations.PRE_VOTE_EVENT_DURATION_MS;
+        return GameConfigurations.PRE_MURDER_EVENT_DURATION_MS;
     }
 
     @Override
@@ -54,12 +54,12 @@ public class PreVoteEvent implements EventObjectInterface {
 
     @Override
     public String getStartNotification() {
-        return "The pre-vote discussion phase has started.";
+        return "The traitors are gathering in the shadows.";
     }
 
     @Override
     public String getInitialMessage() {
-        return "Discuss among yourselves. Who do you suspect is a traitor?";
+        return "Night is falling. Traitors — discuss your plan before the murder phase begins.";
     }
 
     @Override

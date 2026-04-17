@@ -134,6 +134,13 @@ export function getMenu(gameCode, playerCode) {
   });
 }
 
+export function dismissInitialMessage(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/dismiss-message`, {
+    method: 'POST',
+    headers: authHeader(playerCode),
+  });
+}
+
 // Resolve player by name (no auth required)
 export function resolvePlayer(gameCode, playerName) {
   return fetchJson(`/games/${gameCode}/resolve/${encodeURIComponent(playerName)}`);

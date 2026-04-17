@@ -16,6 +16,7 @@ import GameEventPage from './pages/GameEventPage';
 import TestDashboardPage from './pages/TestDashboardPage';
 import NotificationsPage from './pages/NotificationsPage';
 import GameOptionsPage from './pages/GameOptionsPage';
+import GamePageWrapper from './components/GamePageWrapper';
 
 function NotFoundPage() {
   return <div style={{ padding: '2rem', textAlign: 'center' }}><h1>Not Found</h1></div>;
@@ -29,17 +30,17 @@ function App() {
         <Route path="/join/:gameCode" element={<JoinPage />} />
         <Route path="/lobby/:gameCode" element={<LobbyPage />} />
         <Route path="/menu/:gameCode/:playerName" element={<MenuPage />} />
-        <Route path="/chat/:gameCode/all" element={<AllChatPage />} />
-        <Route path="/chat/:gameCode/traitors" element={<TraitorChatPage />} />
-        <Route path="/chat/:gameCode/individual" element={<IndividualChatPage />} />
-        <Route path="/chat/:gameCode/dead" element={<DeadChatPage />} />
-        <Route path="/vote/:gameCode/:playerName/banish" element={<BanishVotePage />} />
-        <Route path="/vote/:gameCode/:playerName/murder" element={<MurderVotePage />} />
-        <Route path="/actions/:gameCode" element={<ActionsPage />} />
-        <Route path="/logs/:gameCode" element={<GameLogsPage />} />
-        <Route path="/event/:gameCode" element={<GameEventPage />} />
+        <Route path="/chat/:gameCode/all" element={<GamePageWrapper><AllChatPage /></GamePageWrapper>} />
+        <Route path="/chat/:gameCode/traitors" element={<GamePageWrapper><TraitorChatPage /></GamePageWrapper>} />
+        <Route path="/chat/:gameCode/individual" element={<GamePageWrapper><IndividualChatPage /></GamePageWrapper>} />
+        <Route path="/chat/:gameCode/dead" element={<GamePageWrapper><DeadChatPage /></GamePageWrapper>} />
+        <Route path="/vote/:gameCode/:playerName/banish" element={<GamePageWrapper><BanishVotePage /></GamePageWrapper>} />
+        <Route path="/vote/:gameCode/:playerName/murder" element={<GamePageWrapper><MurderVotePage /></GamePageWrapper>} />
+        <Route path="/actions/:gameCode" element={<GamePageWrapper><ActionsPage /></GamePageWrapper>} />
+        <Route path="/logs/:gameCode" element={<GamePageWrapper><GameLogsPage /></GamePageWrapper>} />
+        <Route path="/event/:gameCode" element={<GamePageWrapper><GameEventPage /></GamePageWrapper>} />
         <Route path="/test-dashboard" element={<TestDashboardPage />} />
-        <Route path="/gameOptions/:gameCode/:playerName" element={<GameOptionsPage />} />
+        <Route path="/gameOptions/:gameCode/:playerName" element={<GamePageWrapper><GameOptionsPage /></GamePageWrapper>} />
         <Route path="/notifications/:gameCode/:playerName" element={<NotificationsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

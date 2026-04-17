@@ -8,12 +8,12 @@ import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
 
-public class PreVoteEvent implements EventObjectInterface {
+public class PreBanishEvent implements EventObjectInterface {
 
     private final GameObject game;
     private final long startTime = System.currentTimeMillis();
 
-    public PreVoteEvent(GameObject game) {
+    public PreBanishEvent(GameObject game) {
         this.game = game;
     }
 
@@ -32,6 +32,9 @@ public class PreVoteEvent implements EventObjectInterface {
     public void execute() {
         MenuControl mc = new MenuControl();
         mc.setAllChatEnabled(true);
+        mc.setTraitorChatEnabled(true);
+        mc.setIndividualChatEnabled(true);
+        mc.setGameLogsEnabled(true);
         game.setMenuControl(mc);
     }
 
@@ -39,12 +42,15 @@ public class PreVoteEvent implements EventObjectInterface {
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setAllChatEnabled(true);
+        mc.setTraitorChatEnabled(true);
+        mc.setIndividualChatEnabled(true);
+        mc.setGameLogsEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 
     @Override
     public long getEventTime() {
-        return GameConfigurations.PRE_VOTE_EVENT_DURATION_MS;
+        return GameConfigurations.PRE_BANISH_EVENT_DURATION_MS;
     }
 
     @Override
@@ -54,12 +60,12 @@ public class PreVoteEvent implements EventObjectInterface {
 
     @Override
     public String getStartNotification() {
-        return "The pre-vote discussion phase has started.";
+        return "Discussion phase has begun. Decide who to banish.";
     }
 
     @Override
     public String getInitialMessage() {
-        return "Discuss among yourselves. Who do you suspect is a traitor?";
+        return "Talk it out. Who do you think should be banished?";
     }
 
     @Override

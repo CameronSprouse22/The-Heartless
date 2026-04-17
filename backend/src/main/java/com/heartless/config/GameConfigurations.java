@@ -18,9 +18,11 @@ public final class GameConfigurations {
     public static final long PRE_VOTE_EVENT_DURATION_MS      = FIVE_MINUTES_MS;
     public static final long VOTE_EVENT_DURATION_MS          = FIVE_MINUTES_MS;
     public static final long VOTE_REVEAL_EVENT_DURATION_MS          = FIVE_MINUTES_MS;
-    public static final long REVEAL_BANISH_VOTE_EVENT_DURATION_MS   = FIVE_MINUTES_MS;
+    public static final long PRE_BANISH_EVENT_DURATION_MS          = FIVE_MINUTES_MS;
+    public static final long POST_BANISH_EVENT_DURATION_MS         = FIVE_MINUTES_MS;
+    public static final long PRE_MURDER_EVENT_DURATION_MS          = FIVE_MINUTES_MS;
     public static final long MURDER_EVENT_DURATION_MS        = FIVE_MINUTES_MS;
-    public static final long REVEL_MURDER_EVENT_DURATION_MS  = FIVE_MINUTES_MS;
+    public static final long MURDER_REVEAL_EVENT_DURATION_MS = FIVE_MINUTES_MS;
     public static final long TIE_BREAK_EVENT_DURATION_MS     = FIVE_MINUTES_MS;
     public static final long RECRUIT_EVENT_DURATION_MS       = FIVE_MINUTES_MS;
     public static final long MINI_GAME_EVENT_DURATION_MS     = FIVE_MINUTES_MS;

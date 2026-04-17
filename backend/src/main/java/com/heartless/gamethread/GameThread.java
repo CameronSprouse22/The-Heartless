@@ -2,6 +2,11 @@ package com.heartless.gamethread;
 
 import com.heartless.event.AfterLifeGameEvent;
 import com.heartless.event.EventObjectInterface;
+import com.heartless.event.PreVoteEvent;
+import com.heartless.event.PreBanishEvent;
+import com.heartless.event.PostBanishEvent;
+import com.heartless.event.PreMurderEvent;
+import com.heartless.event.MurderRevealEvent;
 import com.heartless.event.TestingEvent;
 import com.heartless.event.BanishedEvent;
 import com.heartless.model.GameObject;
@@ -75,7 +80,9 @@ public class GameThread {
             eventList.add(new TestingEvent(gameObject));  
         }
 
+        eventList.add(new PreVoteEvent(gameObject)); 
         eventList.add(new BanishedEvent(gameObject));  
+        eventList.add(new PostBanishEvent(gameObject)); 
 
         for (EventObjectInterface event : eventList) {
             if (!event.checkStartConditions()) {
@@ -117,6 +124,8 @@ public class GameThread {
         }
         log.debug("Running event {} — round={} gameId={}",
                 currentEvent.getClass().getSimpleName(), gameObject.getRound(), gameObject.getGameId());
+        // Reset per-player initial-message dismissal so the intro overlay shows again for this event
+        gameObject.initInitialMessageDismissalStates();
         // Execute once to initialise event state
         currentEvent.execute();
         // Broadcast event start over WebSocket so all connected clients update
