@@ -135,6 +135,8 @@ public class GameState {
                 "enabled", mc.isGameLogsEnabled(), "visible", mc.isGameLogsEnabled()));
         menuItems.add(Map.of("id", "game-options", "label", "Game Options",
                 "enabled", mc.isGameOptionsEnabled(), "visible", mc.isGameOptionsEnabled()));
+        menuItems.add(Map.of("id", "reveal", "label", "Reveal",
+                "enabled", mc.isRevealEnabled(), "visible", mc.isRevealEnabled()));
         return menuItems;
     }
 

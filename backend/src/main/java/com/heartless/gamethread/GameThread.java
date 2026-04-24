@@ -2,18 +2,13 @@ package com.heartless.gamethread;
 
 import com.heartless.event.AfterLifeGameEvent;
 import com.heartless.event.EventObjectInterface;
-import com.heartless.event.PreVoteEvent;
-import com.heartless.event.PreBanishEvent;
-import com.heartless.event.PostBanishEvent;
-import com.heartless.event.PreMurderEvent;
-import com.heartless.event.MurderRevealEvent;
-import com.heartless.event.TestingEvent;
-import com.heartless.event.BanishedEvent;
+import com.heartless.event.BanishPreEvent;
+import com.heartless.event.BanishRevealEvent;
+import com.heartless.event.BanishVoteEvent;
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 import com.heartless.push.PushNotificationService;
 import com.heartless.model.Player;
-import com.heartless.model.RoundObject;
-import com.heartless.model.enums.GameStatusEnum;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -37,6 +32,9 @@ public class GameThread {
     private SimpMessagingTemplate messagingTemplate;
     private final java.util.ArrayList<GameRoundObject> roundObjects = new java.util.ArrayList<>();
     private GameRoundObject currentRoundObject;
+    private List<Player> skipRequestedList;
+    private List<Player> pauseRequestedList;
+    private List<Player> kickForInactivityRequestedList;
 
 
     public GameThread(GameObject gameObject, GameCriteriaObject gameCriteriaObject) {
@@ -76,13 +74,9 @@ public class GameThread {
         this.statusString = "Round " + gameObject.getRound();
         gameObject.setCurrentTask("In progress");
 
-        for(int i = 0;i<1;i++){
-            eventList.add(new TestingEvent(gameObject));  
-        }
-
-        eventList.add(new PreVoteEvent(gameObject)); 
-        eventList.add(new BanishedEvent(gameObject));  
-        eventList.add(new PostBanishEvent(gameObject)); 
+        eventList.add(new BanishPreEvent(gameObject)); 
+        eventList.add(new BanishVoteEvent(gameObject));  
+        eventList.add(new BanishRevealEvent(gameObject)); 
 
         for (EventObjectInterface event : eventList) {
             if (!event.checkStartConditions()) {
@@ -113,6 +107,7 @@ public class GameThread {
      * @return true if the event completed normally, false if it timed out
      */
     public boolean runCurrentEvent() {
+        log.warn("---->Starting "+currentEvent.getClass().getSimpleName());
         if (currentEvent == null) {
             log.warn("runCurrentEvent called with no current event — gameId={}", gameObject.getGameId());
             return false;
@@ -126,8 +121,8 @@ public class GameThread {
                 currentEvent.getClass().getSimpleName(), gameObject.getRound(), gameObject.getGameId());
         // Reset per-player initial-message dismissal so the intro overlay shows again for this event
         gameObject.initInitialMessageDismissalStates();
-        // Execute once to initialise event state
-        currentEvent.execute();
+        // Initialise event state once on start
+        currentEvent.onStart();
         // Broadcast event start over WebSocket so all connected clients update
         if (messagingTemplate != null) {
             messagingTemplate.convertAndSend(
@@ -147,13 +142,12 @@ public class GameThread {
             }
         }
         // Loop until end condition is satisfied or time runs out
-        while (!currentEvent.endConditonsMeet(gameObject)) {
+        while (!currentEvent.endConditonsMeet(gameObject) || System.currentTimeMillis() >= currentEvent.getEventEndTime()) {
             if (System.currentTimeMillis() >= currentEvent.getEventEndTime()) {
                 log.info("Event {} timed out — gameId={}",
                         currentEvent.getClass().getSimpleName(), gameObject.getGameId());
                 break;
             }
-            currentEvent.execute();
             try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
         }
         return true;
@@ -209,6 +203,19 @@ public class GameThread {
     }
 
     /**
+     * Finalises the current round (if any), then creates and starts a new round
+     * in both the GameThread and the GameObject.
+     *
+     * @return the newly created GameRoundObject
+     */
+    public GameRoundObject newRound() {
+        gameObject.startNewRound();
+        currentRoundObject = new GameRoundObject(gameObject.getRound());
+        log.debug("New round started — round={} gameId={}", gameObject.getRound(), gameObject.getGameId());
+        return currentRoundObject;
+    }
+
+    /**
      * Build a GameState snapshot for the given player.
      * If the player is dead, returns AfterLifeGameEvent state.
      * Otherwise delegates to the current event's getGameState.
@@ -222,7 +229,7 @@ public class GameThread {
             log.debug("Active event: {}", currentEvent.getClass().getSimpleName());
             return currentEvent.getGameState();
         }
-        log.debug("No active event — using stored MenuControl");
-        return GameState.fromMenuControl(gameObject.getMenuControl(), gameObject);
+        log.debug("No active event — returning empty menu state");
+        return GameState.fromMenuControl(new MenuControl(), gameObject);
     }
 }

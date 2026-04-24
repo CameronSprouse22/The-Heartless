@@ -1,10 +1,13 @@
 package com.heartless.controller;
 
+import com.heartless.event.EventAction;
 import com.heartless.gamethread.GameState;
 import com.heartless.gamethread.GameThread;
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 import com.heartless.model.Player;
 import com.heartless.model.RoundObject;
+import com.heartless.model.UserSelectionsState;
 import com.heartless.model.enums.PlayerStatusEnum;
 import com.heartless.service.GameService;
 import org.springframework.http.HttpStatus;
@@ -136,14 +139,24 @@ public class GameController {
             if (gameThread != null) {
                 gameState = gameThread.buildGameState(player);
             } else {
-                gameState = GameState.fromMenuControl(game.getMenuControl(), game);
+                gameState = GameState.fromMenuControl(new MenuControl(), game);
             }
             Map<String, Object> stateMap = gameState.toMap();
+            stateMap.put("playersRemaining", game.getActivePlayerCount());
             if (gameThread != null && gameThread.getCurrentEvent() != null) {
                 String initialMsg = gameThread.getCurrentEvent().getInitialMessage();
                 boolean dismissed = game.hasPlayerDismissedInitialMessage(playerId);
                 stateMap.put("initialMessage", initialMsg != null ? initialMsg : "");
                 stateMap.put("hasDismissedInitialMessage", dismissed);
+            }
+            // Restore player's selection state so the frontend can re-populate UI after a refresh
+            UserSelectionsState selState = game.getSelectionState(playerId);
+            if (selState != null) {
+                stateMap.put("mySelection", Map.of(
+                        "selectedItems", selState.getSelectedItems(),
+                        "textFieldInput", selState.getTextFieldInput(),
+                        "submitPressed", selState.isSubmitPressed()
+                ));
             }
             return ResponseEntity.ok(stateMap);
         } catch (IllegalArgumentException e) {
@@ -234,6 +247,42 @@ public class GameController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/games/{gameCode}/reveal")
+    public ResponseEntity<Map<String, Object>> getRevealedVotes(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        String playerId = gameService.getPlayerId(playerCode);
+        if (playerId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
+        }
+        try {
+            GameObject game = gameService.getGameOrThrow(gameCode);
+            if (game.findPlayerById(playerId) == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
+            }
+            GameThread thread = gameService.getGameThread(gameCode);
+            if (thread == null || thread.getCurrentEvent() == null) {
+                return ResponseEntity.ok(Map.of("revealedVotes", List.of(), "totalVotes", 0, "revealComplete", false));
+            }
+            List<EventAction> actions = thread.getCurrentEvent().getEvents();
+            if (actions == null) {
+                return ResponseEntity.ok(Map.of("revealedVotes", List.of(), "totalVotes", 0, "revealComplete", false));
+            }
+            long now = System.currentTimeMillis();
+            List<Object> revealed = actions.stream()
+                    .filter(a -> a.getExecuteTime() != null && a.getExecuteTime() <= now)
+                    .map(EventAction::getActionObject)
+                    .collect(java.util.stream.Collectors.toList());
+            Map<String, Object> result = new HashMap<>();
+            result.put("revealedVotes", revealed);
+            result.put("totalVotes", actions.size());
+            result.put("revealComplete", revealed.size() == actions.size());
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
     }
 }

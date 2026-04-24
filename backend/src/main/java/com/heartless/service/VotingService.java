@@ -95,6 +95,7 @@ public class VotingService {
 
         Vote vote = new Vote(voter, target);
         votes.add(vote);
+        game.addBanishVote(vote);
 
         // Track submit in per-player selection state
         UserSelectionsState selState = game.getSelectionState(voterId);
@@ -170,7 +171,13 @@ public class VotingService {
         result.put("voteType", "MURDER");
         result.put("votingEnabled", true);
         result.put("candidates", candidates);
-        result.put("existingVotes", List.of());
+        List<Map<String, Object>> existingVoteRecords = murderVotes.getOrDefault(gameCode, List.of());
+        List<String> existingVotes = existingVoteRecords.stream()
+                .filter(v -> playerId.equals(v.get("voterId")))
+                .findFirst()
+                .map(v -> (List<String>) v.get("targetIds"))
+                .orElse(List.of());
+        result.put("existingVotes", existingVotes);
         result.put("othersVotes", getOtherMurderVotes(gameCode, playerId, game));
         return result;
     }
@@ -206,7 +213,12 @@ public class VotingService {
                 .toList();
         voteRecord.put("targetNames", targetNames);
 
-        murderVotes.computeIfAbsent(gameCode, k -> Collections.synchronizedList(new ArrayList<>())).add(voteRecord);
+        List<Map<String, Object>> votes = murderVotes.computeIfAbsent(gameCode, k -> Collections.synchronizedList(new ArrayList<>()));
+        boolean alreadyVoted = votes.stream().anyMatch(v -> voterId.equals(v.get("voterId")));
+        if (alreadyVoted) {
+            throw new IllegalStateException("Already voted this round");
+        }
+        votes.add(voteRecord);
 
         // Track submit in per-player selection state
         UserSelectionsState selState = game.getSelectionState(voterId);

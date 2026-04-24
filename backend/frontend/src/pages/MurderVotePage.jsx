@@ -1,6 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import GameStatusBar from '../components/GameStatusBar';
 import VoteCard from '../components/VoteCard';
 import { getMurderCandidates, castMurderVote } from '../services/api';
 import { connect, disconnect, subscribe, send } from '../services/websocket';
@@ -40,6 +39,10 @@ function MurderVotePage() {
       getMurderCandidates(gameCode, playerCode)
         .then(res => {
           setCandidates(res.candidates || []);
+          if (res.existingVotes && res.existingVotes.length > 0) {
+            setSelected(res.existingVotes);
+            setSubmitted(true);
+          }
           (res.othersVotes || []).forEach(v =>
             updateOtherPlayer(v.voterId, v.voterName, v.targetIds || [], v.targetNames || [], true)
           );
@@ -139,8 +142,7 @@ function MurderVotePage() {
 
   if (submitted) {
     return (
-      <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center' }}>
-        <GameStatusBar gameCode={gameCode} playerCode={playerCode} />
+      <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center', color: '#e0e0e0' }}>
         <h2>Vote Cast</h2>
         <p>Your murder vote has been recorded.</p>
         <OthersPanel />
@@ -150,8 +152,7 @@ function MurderVotePage() {
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center' }}>
-      <GameStatusBar gameCode={gameCode} playerCode={playerCode} />
+    <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center', color: '#e0e0e0', padding: '1rem' }}>
       <h2>Murder Vote</h2>
       <p>Select target(s) to eliminate:</p>
       {error && <p style={{ color: 'red' }}>{error}</p>}

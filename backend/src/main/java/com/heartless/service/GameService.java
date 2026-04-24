@@ -1,5 +1,6 @@
 package com.heartless.service;
 
+import com.heartless.config.StartingGameSettings;
 import com.heartless.event.TestingEvent;
 import com.heartless.gamethread.GameCriteriaObject;
 import com.heartless.gamethread.GameThread;
@@ -156,9 +157,9 @@ public class GameService {
 
         int activeCount = activePlayers.size();
         log.debug("Active player count={} for gameCode={}", activeCount, gameCode);
-        if (activeCount < 4) {
+        if (activeCount < StartingGameSettings.MIN_PLAYERS_TO_START) {
             log.warn("Start rejected — only {} active players for gameCode={}", activeCount, gameCode);
-            throw new IllegalStateException("Need at least 4 active players to start (currently " + activeCount + ")");
+            throw new IllegalStateException("Need at least " + StartingGameSettings.MIN_PLAYERS_TO_START + " active players to start (currently " + activeCount + ")");
         }
 
         synchronized (game) {
@@ -173,7 +174,6 @@ public class GameService {
         gameThread.setMessagingTemplate(messagingTemplate);
         gameThread.setPushNotificationService(pushNotificationService);
         gameThread.gameInit();
-        testingEvent.execute();
         gameStore.putGameThread(gameCode, gameThread);
 
         log.info("Game started — gameCode={} players={}", gameCode, activeCount);
@@ -280,11 +280,12 @@ public class GameService {
     }
 
     private static final String[] TEST_PLAYER_NAMES = {
-        "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf"
+        //"Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel" 
+        "Alpha", "Bravo", "Charlie", "Delta" 
     };
 
     /**
-     * Creates a test game with 7 hardcoded players (Alpha through Golf),
+     * Creates a test game with 3 hardcoded players (Alpha through Charlie),
      * all set to ACTIVE status so the game can be started immediately.
      */
     public Map<String, Object> createTestGame() {

@@ -10,6 +10,7 @@ import IndividualChatPage from './pages/IndividualChatPage';
 import DeadChatPage from './pages/DeadChatPage';
 import BanishVotePage from './pages/BanishVotePage';
 import MurderVotePage from './pages/MurderVotePage';
+import BanishRevealPage from './pages/BanishRevealPage';
 import ActionsPage from './pages/ActionsPage';
 import GameLogsPage from './pages/GameLogsPage';
 import GameEventPage from './pages/GameEventPage';
@@ -36,6 +37,7 @@ function App() {
         <Route path="/chat/:gameCode/dead" element={<GamePageWrapper><DeadChatPage /></GamePageWrapper>} />
         <Route path="/vote/:gameCode/:playerName/banish" element={<GamePageWrapper><BanishVotePage /></GamePageWrapper>} />
         <Route path="/vote/:gameCode/:playerName/murder" element={<GamePageWrapper><MurderVotePage /></GamePageWrapper>} />
+        <Route path="/reveal/:gameCode/:playerName" element={<GamePageWrapper><BanishRevealPage /></GamePageWrapper>} />
         <Route path="/actions/:gameCode" element={<GamePageWrapper><ActionsPage /></GamePageWrapper>} />
         <Route path="/logs/:gameCode" element={<GamePageWrapper><GameLogsPage /></GamePageWrapper>} />
         <Route path="/event/:gameCode" element={<GamePageWrapper><GameEventPage /></GamePageWrapper>} />

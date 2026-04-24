@@ -57,9 +57,9 @@ class GameThreadTest {
         // Create an event that kills the traitor, ending the game
         EventObjectInterface killTraitor = new StubEvent(game, "Kill", new ArrayList<>()) {
             @Override
-            public void execute() {
+            public void onStart() {
                 traitor.setDead(true);
-                super.execute();
+                super.onStart();
             }
         };
 
@@ -98,9 +98,9 @@ class GameThreadTest {
         // Event that ends the game by killing traitor
         EventObjectInterface killEvent = new StubEvent(game, "Kill", new ArrayList<>()) {
             @Override
-            public void execute() {
+            public void onStart() {
                 traitor.setDead(true);
-                super.execute();
+                super.onStart();
             }
         };
         game.transitionToStart();
@@ -160,6 +160,6 @@ class GameThreadTest {
         public boolean checkForNotifications() { return true; }
 
         @Override
-        public void execute() { log.add(name); }
+        public void onStart() { log.add(name); }
     }
 }

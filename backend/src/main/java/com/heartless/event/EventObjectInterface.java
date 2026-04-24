@@ -24,7 +24,12 @@ public interface EventObjectInterface {
      */
     ArrayList<UserSelectionsState> getUsersSelections();
 
-    void execute();
+    /**
+     * Called once when an event is started. Use this for one-time initialisation
+     * (e.g. initialising player selection states, recording start time).
+     * Default is a no-op — override only when start-up work is needed.
+     */
+    default void onStart() {}
 
     /**
      * Returns a GameState snapshot for this event,
@@ -67,4 +72,12 @@ public interface EventObjectInterface {
      * Default is a no-op — override in events that manage vote state.
      */
     default void resolveEvent() {}
+
+    /**
+     * Returns a list of scheduled reveal actions for this event.
+     * Each {@link EventAction} has an actionObject (the data to reveal) and an
+     * executeTime (epoch ms when it should be shown to the frontend).
+     * Returns null for non-reveal events.
+     */
+    default java.util.List<EventAction> getEvents() { return null; }
 }

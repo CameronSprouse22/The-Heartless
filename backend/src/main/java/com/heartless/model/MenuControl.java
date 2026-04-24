@@ -15,6 +15,7 @@ public class MenuControl {
     private boolean actionsEnabled;
     private boolean gameLogsEnabled;
     private boolean gameOptionsEnabled;
+    private boolean revealEnabled;
 
     public MenuControl() {
         // All disabled by default
@@ -26,6 +27,7 @@ public class MenuControl {
         this.actionsEnabled = false;
         this.gameLogsEnabled = false;
         this.gameOptionsEnabled = false;
+        this.revealEnabled = false;
     }
 
     public boolean isTraitorChatEnabled() { return traitorChatEnabled; }
@@ -51,4 +53,7 @@ public class MenuControl {
 
     public boolean isGameOptionsEnabled() { return gameOptionsEnabled; }
     public void setGameOptionsEnabled(boolean gameOptionsEnabled) { this.gameOptionsEnabled = gameOptionsEnabled; }
+
+    public boolean isRevealEnabled() { return revealEnabled; }
+    public void setRevealEnabled(boolean revealEnabled) { this.revealEnabled = revealEnabled; }
 }

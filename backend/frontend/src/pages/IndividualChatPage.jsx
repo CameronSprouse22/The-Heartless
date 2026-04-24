@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { getGameState } from '../services/api';
 import ChatWindow from '../components/ChatWindow';
 
 function IndividualChatPage() {
   const { gameCode } = useParams();
-  const navigate = useNavigate();
   const playerCode = sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode');
-  const playerName = localStorage.getItem('playerName') || '';
   const [players, setPlayers] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState('');
 
@@ -25,12 +23,8 @@ function IndividualChatPage() {
   }, [gameCode, playerCode]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <div style={{ padding: '0.5rem', background: '#9C27B0', color: 'white', display: 'flex', justifyContent: 'space-between' }}>
-        <button onClick={() => navigate(`/menu/${gameCode}/${encodeURIComponent(playerName)}`)} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer' }}>← Back</button>
-        <span>Individual Chat</span>
-        <span></span>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ padding: '0.4rem 1rem', background: '#2a1a3a', color: '#CE93D8', fontWeight: 'bold', fontSize: '0.85rem' }}>Individual Chat</div>
 
       <div style={{ padding: '0.5rem' }}>
         <select

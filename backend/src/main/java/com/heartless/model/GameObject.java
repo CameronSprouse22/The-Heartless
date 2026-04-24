@@ -33,6 +33,7 @@ public class GameObject {
     private MenuControl menuControl;
     private final Map<String, UserSelectionsState> selectionStateMap;
     private final Map<String, EventMessageDismissalState> initialMessageDismissalMap;
+    private final List<Vote> banishVotes;
 
     public GameObject(String gameIdCode) {
         this.gameId = ID_GENERATOR.getAndIncrement();
@@ -51,6 +52,7 @@ public class GameObject {
         this.menuControl = new MenuControl();
         this.selectionStateMap = new HashMap<>();
         this.initialMessageDismissalMap = new HashMap<>();
+        this.banishVotes = new ArrayList<>();
     }
 
     // --- State transitions ---
@@ -91,8 +93,20 @@ public class GameObject {
         this.playerList.add(player);
     }
 
+    //May not use
     public void addRound(RoundObject roundObject) {
         this.roundList.add(roundObject);
+    }
+
+    public RoundObject getCurrentRound() {
+        return roundList.isEmpty() ? null : roundList.get(roundList.size() - 1);
+    }
+
+    public RoundObject startNewRound() {
+        incrementRound();
+        RoundObject newRound = new RoundObject(this.round);
+        roundList.add(newRound);
+        return newRound;
     }
 
     public void addEvent(EventObjectInterface event) {
@@ -124,6 +138,9 @@ public class GameObject {
     public void setLastMurderId(String lastMurderId) { this.lastMurderId = lastMurderId; }
     public MenuControl getMenuControl() { return menuControl; }
     public void setMenuControl(MenuControl menuControl) { this.menuControl = menuControl; }
+
+    public void addBanishVote(Vote vote) { banishVotes.add(vote); }
+    public List<Vote> getBanishVotes() { return new ArrayList<>(banishVotes); }
 
     // --- Selection State ---
 

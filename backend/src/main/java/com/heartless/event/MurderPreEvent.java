@@ -8,17 +8,20 @@ import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
 
-public class PreMurderEvent implements EventObjectInterface {
+public class MurderPreEvent implements EventObjectInterface {
 
     private final GameObject game;
-    private final long startTime = System.currentTimeMillis();
+    private Long startTime = null;
 
-    public PreMurderEvent(GameObject game) {
+    public MurderPreEvent(GameObject game) {
         this.game = game;
     }
 
     @Override
-    public boolean checkStartConditions() { return true; }
+    public boolean checkStartConditions() {
+        startTime = System.currentTimeMillis();
+        return true;
+    }
 
     @Override
     public boolean endConditonsMeet(GameObject gameObject) { return true; }
@@ -26,13 +29,6 @@ public class PreMurderEvent implements EventObjectInterface {
     @Override
     public ArrayList<UserSelectionsState> getUsersSelections() {
         return new ArrayList<>(game.getSelectionStateMap().values());
-    }
-
-    @Override
-    public void execute() {
-        MenuControl mc = new MenuControl();
-        mc.setTraitorChatEnabled(true);
-        game.setMenuControl(mc);
     }
 
     @Override
@@ -44,11 +40,12 @@ public class PreMurderEvent implements EventObjectInterface {
 
     @Override
     public long getEventTime() {
-        return GameConfigurations.PRE_MURDER_EVENT_DURATION_MS;
+        return GameConfigurations.MURDER_PRE_EVENT_DURATION_MS;
     }
 
     @Override
     public long getEventEndTime() {
+        if (startTime == null) return Long.MAX_VALUE;
         return startTime + getEventTime();
     }
 

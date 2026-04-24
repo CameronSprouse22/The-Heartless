@@ -195,3 +195,10 @@ export function updateNotifPrefs(playerCode, prefs) {
     body: JSON.stringify(prefs),
   });
 }
+
+// Vote Reveal
+export function getRevealedVotes(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/reveal`, {
+    headers: authHeader(playerCode),
+  });
+}

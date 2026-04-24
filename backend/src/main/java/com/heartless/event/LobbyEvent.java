@@ -29,14 +29,6 @@ public class LobbyEvent implements EventObjectInterface {
     }
 
     @Override
-    public void execute() {
-        MenuControl mc = new MenuControl();
-        mc.setAllChatEnabled(true);
-        mc.setGameOptionsEnabled(true);
-        game.setMenuControl(mc);
-    }
-
-    @Override
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setAllChatEnabled(true);

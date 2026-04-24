@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import GameStatusBar from '../components/GameStatusBar';
 import VoteCard from '../components/VoteCard';
 import { getBanishCandidates, castBanishVote } from '../services/api';
 import { connect, disconnect, subscribe, send } from '../services/websocket';
@@ -40,6 +39,10 @@ function BanishVotePage() {
       getBanishCandidates(gameCode, playerCode)
         .then(res => {
           setCandidates(res.candidates || []);
+          if (res.existingVote) {
+            setSelected(res.existingVote);
+            setSubmitted(true);
+          }
           (res.othersVotes || []).forEach(v =>
             updateOtherPlayer(v.voterId, v.voterName, v.targetId || null, v.targetName || null, true)
           );
@@ -140,8 +143,7 @@ function BanishVotePage() {
 
   if (submitted) {
     return (
-      <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center' }}>
-        <GameStatusBar gameCode={gameCode} playerCode={playerCode} />
+      <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center', color: '#e0e0e0' }}>
         <h2>Vote Cast</h2>
         <p>Your banishment vote has been recorded.</p>
         <OthersPanel />
@@ -151,8 +153,7 @@ function BanishVotePage() {
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center' }}>
-      <GameStatusBar gameCode={gameCode} playerCode={playerCode} />
+    <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center', color: '#e0e0e0', padding: '1rem' }}>
       <h2>Banish Vote</h2>
       <p>Select a player to banish:</p>
       {error && <p style={{ color: 'red' }}>{error}</p>}

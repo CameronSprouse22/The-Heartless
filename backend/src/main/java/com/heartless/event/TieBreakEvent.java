@@ -11,14 +11,17 @@ import java.util.ArrayList;
 public class TieBreakEvent implements EventObjectInterface {
 
     private final GameObject game;
-    private final long startTime = System.currentTimeMillis();
+    private Long startTime = null;
 
     public TieBreakEvent(GameObject game) {
         this.game = game;
     }
 
     @Override
-    public boolean checkStartConditions() { return true; }
+    public boolean checkStartConditions() {
+        startTime = System.currentTimeMillis();
+        return true;
+    }
 
     @Override
     public boolean endConditonsMeet(GameObject gameObject) { return true; }
@@ -29,14 +32,10 @@ public class TieBreakEvent implements EventObjectInterface {
     }
 
     @Override
-    public void execute() {
+    public void onStart() {
         game.initSelectionStates(game.getPlayerList().stream()
                 .map(p -> p.getId())
                 .toList());
-        MenuControl mc = new MenuControl();
-        mc.setBanishVoteEnabled(true);
-        mc.setAllChatEnabled(true);
-        game.setMenuControl(mc);
     }
 
     @Override
@@ -54,6 +53,7 @@ public class TieBreakEvent implements EventObjectInterface {
 
     @Override
     public long getEventEndTime() {
+        if (startTime == null) return Long.MAX_VALUE;
         return startTime + getEventTime();
     }
 

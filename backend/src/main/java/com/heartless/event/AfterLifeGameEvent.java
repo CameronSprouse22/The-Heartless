@@ -34,11 +34,6 @@ public class AfterLifeGameEvent implements EventObjectInterface {
     }
 
     @Override
-    public void execute() {
-        // No-op: AfterLifeGameEvent is a read-only state, not a game phase.
-    }
-
-    @Override
     public GameState getGameState() {
         List<Map<String, Object>> menuItems = new ArrayList<>();
         menuItems.add(Map.of("id", "traitor-chat",   "label", "Traitor Chat",   "enabled", false, "visible", false));
@@ -67,7 +62,7 @@ public class AfterLifeGameEvent implements EventObjectInterface {
 
     @Override
     public long getEventTime() {
-        return GameConfigurations.AFTER_LIFE_EVENT_DURATION_MS;
+        return GameConfigurations.AFTER_LIFE_GAME_EVENT_DURATION_MS;
     }
 
     @Override

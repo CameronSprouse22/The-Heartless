@@ -50,20 +50,22 @@ function ChatWindow({ gameCode, playerCode, channel, recipientId, cardImageUrl }
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
+      background: cardImageUrl ? undefined : '#1a1a1a',
     }}>
       <div style={{
         flex: 1,
         overflowY: 'auto',
         padding: '0.5rem',
-        background: cardImageUrl ? 'rgba(255,255,255,0.85)' : '#f9f9f9',
+        background: cardImageUrl ? 'rgba(0,0,0,0.65)' : 'transparent',
       }}>
         {messages.map((msg, i) => (
           <div key={msg.messageId || i} style={{
             marginBottom: '0.25rem',
             padding: '0.25rem 0.5rem',
-            background: 'white',
+            background: 'rgba(255,255,255,0.08)',
             borderRadius: '4px',
             fontSize: '0.9rem',
+            color: '#e0e0e0',
           }}>
             <strong>{msg.senderName}:</strong> {msg.text}
           </div>
@@ -74,8 +76,8 @@ function ChatWindow({ gameCode, playerCode, channel, recipientId, cardImageUrl }
       <form onSubmit={handleSend} style={{
         display: 'flex',
         padding: '0.5rem',
-        borderTop: '1px solid #ddd',
-        background: 'white',
+        borderTop: '1px solid #333',
+        background: '#111',
       }}>
         <input
           type="text"
@@ -83,9 +85,9 @@ function ChatWindow({ gameCode, playerCode, channel, recipientId, cardImageUrl }
           onChange={(e) => setText(e.target.value)}
           placeholder="Type a message..."
           maxLength={500}
-          style={{ flex: 1, padding: '0.5rem', marginRight: '0.5rem' }}
+          style={{ flex: 1, padding: '0.5rem', marginRight: '0.5rem', background: '#2a2a2a', color: '#e0e0e0', border: '1px solid #444', borderRadius: '4px' }}
         />
-        <button type="submit" style={{ padding: '0.5rem 1rem' }}>Send</button>
+        <button type="submit" style={{ padding: '0.5rem 1rem', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Send</button>
       </form>
 
       {error && <p style={{ color: 'red', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>{error}</p>}

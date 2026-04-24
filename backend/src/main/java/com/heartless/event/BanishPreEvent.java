@@ -8,20 +8,23 @@ import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
 
-public class MurderEvent implements EventObjectInterface {
+public class BanishPreEvent implements EventObjectInterface {
 
     private final GameObject game;
-    private final long startTime = System.currentTimeMillis();
+    private Long startTime = null;
 
-    public MurderEvent(GameObject game) {
+    public BanishPreEvent(GameObject game) {
         this.game = game;
     }
 
     @Override
-    public boolean checkStartConditions() { return true; }
+    public boolean checkStartConditions() {
+        startTime = System.currentTimeMillis();
+        return true;
+    }
 
     @Override
-    public boolean endConditonsMeet(GameObject gameObject) { return true; }
+    public boolean endConditonsMeet(GameObject gameObject) { return false; }
 
     @Override
     public ArrayList<UserSelectionsState> getUsersSelections() {
@@ -29,42 +32,31 @@ public class MurderEvent implements EventObjectInterface {
     }
 
     @Override
-    public void execute() {
-        game.initSelectionStates(game.getPlayerList().stream()
-                .map(p -> p.getId())
-                .toList());
-        MenuControl mc = new MenuControl();
-        mc.setMurderVoteEnabled(true);
-        mc.setTraitorChatEnabled(true);
-        game.setMenuControl(mc);
-    }
-
-    @Override
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
-        mc.setMurderVoteEnabled(true);
-        mc.setTraitorChatEnabled(true);
+        mc.setAllChatEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 
     @Override
     public long getEventTime() {
-        return GameConfigurations.MURDER_EVENT_DURATION_MS;
+        return GameConfigurations.BANISH_PRE_EVENT_DURATION_MS;
     }
 
     @Override
     public long getEventEndTime() {
+        if (startTime == null) return Long.MAX_VALUE;
         return startTime + getEventTime();
     }
 
     @Override
     public String getStartNotification() {
-        return "The murder phase has begun.";
+        return "Discussion phase has begun. Decide who to banish.";
     }
 
     @Override
     public String getInitialMessage() {
-        return "The night falls. Traitors — select your target carefully.";
+        return "Talk it out. Who do you think should be banished?";
     }
 
     @Override

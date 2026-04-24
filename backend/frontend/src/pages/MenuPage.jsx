@@ -92,6 +92,7 @@ function MenuPage() {
           'dead-chat':       `/chat/${gameCode}/dead`,
           'banish-vote':     `/vote/${gameCode}/${encodeURIComponent(playerName)}/banish`,
           'murder-vote':     `/vote/${gameCode}/${encodeURIComponent(playerName)}/murder`,
+          'reveal':          `/reveal/${gameCode}/${encodeURIComponent(playerName)}`,
           'actions':         `/actions/${gameCode}`,
           'game-options':    `/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`,
           'game-logs':       `/logs/${gameCode}`,
@@ -209,6 +210,7 @@ function MenuPage() {
       case 'dead-chat':      navigate(`/chat/${gameCode}/dead`); break;
       case 'banish-vote':    navigate(`/vote/${gameCode}/${encodeURIComponent(playerName)}/banish`); break;
       case 'murder-vote':    navigate(`/vote/${gameCode}/${encodeURIComponent(playerName)}/murder`); break;
+      case 'reveal':         navigate(`/reveal/${gameCode}/${encodeURIComponent(playerName)}`); break;
       case 'actions':        navigate(`/actions/${gameCode}`); break;
       case 'game-options':   navigate(`/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`); break;
       case 'game-logs':      navigate(`/logs/${gameCode}`); break;
@@ -220,8 +222,9 @@ function MenuPage() {
   const menuItemMap = Object.fromEntries((menu?.menuItems || []).map(i => [i.id, i]));
   const MENU_ORDER = [
     { id: 'game',            label: '🎮 Game' },
-    { id: 'banish-vote',     label: '� Banish Vote' },
+    { id: 'banish-vote',     label: '🗳 Banish Vote' },
     { id: 'murder-vote',     label: '🩸 Murder Vote' },
+    { id: 'reveal',          label: '👁️ Reveal' },
     { id: 'all-chat',        label: '💬 All Chat' },
     { id: 'traitor-chat',    label: '👤 Traitor Chat' },
     { id: 'individual-chat', label: '🕵️ Individual Chat' },
@@ -235,12 +238,13 @@ function MenuPage() {
       <GameStatusBar
         gameStatus={menu.statusString || menu.gameStatus}
         round={menu.round}
-        currentTask={menu.currentTask}
         playerName={menu.playerName}
+        playersRemaining={menu.playersRemaining}
+        eventType={menu.eventType}
+        timeLeftMs={timeLeftMs}
       />
 
       <div style={{ padding: '1rem', maxWidth: '400px', margin: '0 auto', width: '100%' }}>
-        <h2>Game Menu</h2>
 
         {permissionState === 'default' && (
           <div style={{
@@ -312,9 +316,9 @@ function MenuPage() {
 
         {MENU_ORDER.map(({ id, label }) => {
           const serverItem = menuItemMap[id];
-          // Items not in the server list default to visible+enabled
-          const visible = serverItem ? serverItem.visible : true;
-          const enabled = serverItem ? serverItem.enabled : true;
+          // 'game' is not server-controlled — always visible. Everything else defaults to hidden if absent.
+          const visible = serverItem ? serverItem.visible : id === 'game';
+          const enabled = serverItem ? serverItem.enabled : id === 'game';
           if (!visible) return null;
           const channelKey = channelKeyMap[id];
           const unread = channelKey ? getUnreadCount(channelKey) : 0;

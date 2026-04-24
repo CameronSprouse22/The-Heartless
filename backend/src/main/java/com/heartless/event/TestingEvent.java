@@ -18,7 +18,10 @@ public class TestingEvent implements EventObjectInterface {
     }
 
     @Override
-    public boolean checkStartConditions() { return true; }
+    public boolean checkStartConditions() {
+        startTime = System.currentTimeMillis();
+        return true;
+    }
 
     @Override
     public boolean endConditonsMeet(GameObject gameObject) {
@@ -28,13 +31,6 @@ public class TestingEvent implements EventObjectInterface {
     @Override
     public ArrayList<UserSelectionsState> getUsersSelections() {
         return new ArrayList<>(game.getSelectionStateMap().values());
-    }
-
-    @Override
-    public void execute() {
-        if (startTime == null) startTime = System.currentTimeMillis();
-        MenuControl mc = buildAllEnabledMenu();
-        game.setMenuControl(mc);
     }
 
     @Override

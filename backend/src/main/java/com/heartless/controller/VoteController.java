@@ -7,6 +7,8 @@ import com.heartless.push.PushNotificationService;
 import com.heartless.service.GameService;
 import com.heartless.service.GameStore;
 import com.heartless.service.VotingService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -24,6 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @RestController
 @RequestMapping("/api")
 public class VoteController {
+
+    private static final Logger log = LogManager.getLogger(VoteController.class);
 
     private final VotingService votingService;
     private final GameService gameService;
@@ -56,6 +60,8 @@ public class VoteController {
         String playerId = (String) attrs.get("playerId");
         if (playerId == null) return;
 
+        log.debug("Banish selection received — gameCode={} playerId={} payload={}", gameCode, playerId, payload);
+
         GameObject game = gameStore.getGame(gameCode);
         if (game == null) return;
         Player player = game.findPlayerById(playerId);
@@ -65,7 +71,13 @@ public class VoteController {
         String targetId = payload.get("targetId") instanceof String s ? s : null;
         UserSelectionsState selState = game.getSelectionState(playerId);
         if (selState != null) {
+            List<String> prev = selState.getSelectedItems();
             selState.setSelectedItems(targetId != null ? List.of(targetId) : List.of());
+            log.info("Banish selection changed — gameCode={} player={} ({}) prev={} new={}",
+                    gameCode, player.getName(), playerId, prev, targetId);
+        } else {
+            log.warn("Banish selection ignored — selState is null (event not started yet?) gameCode={} player={}",
+                    gameCode, playerId);
         }
 
         // Broadcast to other clients
