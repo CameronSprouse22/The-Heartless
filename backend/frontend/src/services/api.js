@@ -209,3 +209,10 @@ export function closeReveal(gameCode, playerCode) {
     headers: authHeader(playerCode),
   });
 }
+
+// Identity Reveal
+export function getIdentityReveal(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/identity-reveal`, {
+    headers: authHeader(playerCode),
+  });
+}

@@ -6,6 +6,7 @@ import useNotifications from '../services/useNotifications';
 import BanishVotePage from './BanishVotePage';
 import MurderVotePage from './MurderVotePage';
 import BanishRevealPage from './BanishRevealPage';
+import IdentityRevealPage from './IdentityRevealPage';
 import AllChatPage from './AllChatPage';
 import TraitorChatPage from './TraitorChatPage';
 import IndividualChatPage from './IndividualChatPage';
@@ -88,7 +89,7 @@ function MenuPage() {
       // Auto-navigate when exactly one server-controlled item is enabled
       const enabledItems = (menuData.menuItems || []).filter(i => i.enabled && i.visible);
       const currentEndTime = menuData.eventEndTime || 0;
-      const PANEL_IDS = ['banish-vote', 'murder-vote', 'reveal', 'all-chat', 'traitor-chat', 'individual-chat', 'dead-chat'];
+      const PANEL_IDS = ['banish-vote', 'murder-vote', 'reveal', 'identity-reveal', 'all-chat', 'traitor-chat', 'individual-chat', 'dead-chat'];
       if (enabledItems.length === 1 && currentEndTime && getAutoNavDone() !== currentEndTime) {
         const navId = enabledItems[0].id;
         if (PANEL_IDS.includes(navId)) {
@@ -217,7 +218,8 @@ function MenuPage() {
       case 'dead-chat':      setActivePanel('dead-chat'); break;
       case 'banish-vote':    setActivePanel('banish-vote'); break;
       case 'murder-vote':    setActivePanel('murder-vote'); break;
-      case 'reveal':         setActivePanel('reveal'); break;
+      case 'reveal':          setActivePanel('reveal'); break;
+      case 'identity-reveal': setActivePanel('identity-reveal'); break;
       case 'actions':        navigate(`/actions/${gameCode}`); break;
       case 'game-options':   navigate(`/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`); break;
       case 'game-logs':      navigate(`/logs/${gameCode}`); break;
@@ -232,6 +234,7 @@ function MenuPage() {
     { id: 'banish-vote',     label: '🗳 Banish Vote' },
     { id: 'murder-vote',     label: '🩸 Murder Vote' },
     { id: 'reveal',          label: '👁️ Reveal' },
+    { id: 'identity-reveal', label: '🃏 Identity Reveal' },
     { id: 'all-chat',        label: '💬 All Chat' },
     { id: 'traitor-chat',    label: '👤 Traitor Chat' },
     { id: 'individual-chat', label: '🕵️ Individual Chat' },
@@ -364,6 +367,7 @@ function MenuPage() {
             {activePanel === 'banish-vote' && <BanishVotePage onClose={() => setActivePanel(null)} />}
             {activePanel === 'murder-vote' && <MurderVotePage onClose={() => setActivePanel(null)} />}
             {activePanel === 'reveal' && <BanishRevealPage onClose={() => setActivePanel(null)} />}
+            {activePanel === 'identity-reveal' && <IdentityRevealPage onClose={() => setActivePanel(null)} />}
             {activePanel === 'all-chat' && <AllChatPage onClose={() => setActivePanel(null)} />}
             {activePanel === 'traitor-chat' && <TraitorChatPage onClose={() => setActivePanel(null)} />}
             {activePanel === 'individual-chat' && <IndividualChatPage onClose={() => setActivePanel(null)} />}

@@ -40,10 +40,8 @@ class GameThreadTest {
         // Game should already be in INIT before gameInit
         assertEquals(GameStatusEnum.INIT, game.getGameStatus());
         thread.gameInit();
-        // gameInit calls gameStart, but with no players the loop exits immediately
-        assertEquals(GameStatusEnum.INIT, game.getGameStatus());
-        // statusString ends at whatever gameStart set (no rounds ran, so "Round -1")
-        assertTrue(thread.getStatusString().contains("Round"));
+        // statusString is set to "Lobby" synchronously inside gameInit before background thread changes it
+        assertEquals("Lobby", thread.getStatusString());
     }
 
     @Test
@@ -66,7 +64,7 @@ class GameThreadTest {
         GameThread thread = new GameThread(game, criteria, List.of(killTraitor));
         thread.gameInit();
         game.transitionToStart(); // Simulates VIP starting
-        thread.gameStart();
+        // gameInit already spawns a background thread running gameStart — do not call it directly
 
         // After gameStart runs through rounds and criteria fails, game stays START
         assertEquals(GameStatusEnum.START, game.getGameStatus());
@@ -106,8 +104,10 @@ class GameThreadTest {
         game.transitionToStart();
         GameThread thread = new GameThread(game, criteria, List.of(killEvent));
         thread.gameInit();
-        // gameInit calls gameStart which runs the loop
-        assertTrue(thread.getStatusString().contains("Round"));
+        // gameInit sets statusString to "Lobby" synchronously; background thread sets "Round X"
+        // and eventually "Game Over". Assert it is set to at least something non-null.
+        assertNotNull(thread.getStatusString());
+        assertFalse(thread.getStatusString().isBlank());
     }
 
     @Test

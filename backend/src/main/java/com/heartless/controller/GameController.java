@@ -287,4 +287,40 @@ public class GameController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
     }
+
+    @GetMapping("/games/{gameCode}/identity-reveal")
+    public ResponseEntity<Map<String, Object>> getIdentityReveal(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        String playerId = gameService.getPlayerId(playerCode);
+        if (playerId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
+        }
+        try {
+            GameObject game = gameService.getGameOrThrow(gameCode);
+            if (game.findPlayerById(playerId) == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
+            }
+            GameThread thread = gameService.getGameThread(gameCode);
+            if (thread == null || thread.getCurrentEvent() == null) {
+                return ResponseEntity.ok(Map.of("revealedPlayers", List.of(), "totalPlayers", 0, "revealComplete", false));
+            }
+            List<EventAction> actions = thread.getCurrentEvent().getEvents();
+            if (actions == null) {
+                return ResponseEntity.ok(Map.of("revealedPlayers", List.of(), "totalPlayers", 0, "revealComplete", false));
+            }
+            long now = System.currentTimeMillis();
+            List<Object> revealed = actions.stream()
+                    .filter(a -> a.getExecuteTime() != null && a.getExecuteTime() <= now)
+                    .map(EventAction::getActionObject)
+                    .collect(java.util.stream.Collectors.toList());
+            Map<String, Object> result = new HashMap<>();
+            result.put("revealedPlayers", revealed);
+            result.put("totalPlayers", actions.size());
+            result.put("revealComplete", revealed.size() == actions.size());
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
 }

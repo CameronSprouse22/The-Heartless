@@ -16,6 +16,7 @@ public class MenuControl {
     private boolean gameLogsEnabled;
     private boolean gameOptionsEnabled;
     private boolean revealEnabled;
+    private boolean identityRevealEnabled;
     private boolean closeEnabled;
 
     public MenuControl() {
@@ -29,6 +30,7 @@ public class MenuControl {
         this.gameLogsEnabled = false;
         this.gameOptionsEnabled = false;
         this.revealEnabled = false;
+        this.identityRevealEnabled = false;
         this.closeEnabled = false;
     }
 
@@ -58,6 +60,9 @@ public class MenuControl {
 
     public boolean isRevealEnabled() { return revealEnabled; }
     public void setRevealEnabled(boolean revealEnabled) { this.revealEnabled = revealEnabled; }
+
+    public boolean isIdentityRevealEnabled() { return identityRevealEnabled; }
+    public void setIdentityRevealEnabled(boolean identityRevealEnabled) { this.identityRevealEnabled = identityRevealEnabled; }
 
     public boolean isCloseEnabled() { return closeEnabled; }
     public void setCloseEnabled(boolean closeEnabled) { this.closeEnabled = closeEnabled; }

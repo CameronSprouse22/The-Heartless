@@ -17,8 +17,8 @@ public final class GameConfigurations {
 
     public static final long AFTER_LIFE_GAME_EVENT_DURATION_MS = FIVE_MINUTES_MS;
     public static final long BANISH_PRE_EVENT_DURATION_MS     = TEN_SECONDS_MS;
-    public static final long BANISH_REVEAL_EVENT_DURATION_MS  = ONE_MINUTE_MS;
-    public static final long BANISH_VOTE_EVENT_DURATION_MS    = ONE_MINUTE_MS;
+    public static final long BANISH_REVEAL_EVENT_DURATION_MS  = HALF_MINUTE_MS;
+    public static final long BANISH_VOTE_EVENT_DURATION_MS    = HALF_MINUTE_MS;
     public static final long LOBBY_EVENT_DURATION_MS          = FIVE_MINUTES_MS;
     public static final long MINI_GAME_EVENT_DURATION_MS      = FIVE_MINUTES_MS;
     public static final long MURDER_PRE_EVENT_DURATION_MS     = TEN_SECONDS_MS;
@@ -29,4 +29,6 @@ public final class GameConfigurations {
     public static final long TESTING_EVENT_DURATION_MS        = TEN_SECONDS_MS;
     public static final long TIE_BREAK_EVENT_DURATION_MS      = FIVE_MINUTES_MS;
     public static final long VOTE_REVEAL_EVENT_DURATION_MS    = FIVE_MINUTES_MS;
+    /** Duration for the identity reveal event. Increase for larger player counts. */
+    public static final long REVEAL_PLAYER_IDENTITY_EVENT_DURATION_MS = 2L * ONE_MINUTE_MS;
 }
