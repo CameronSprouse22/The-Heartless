@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createEvent } from '../services/api';
 
@@ -6,7 +6,6 @@ function TestDashboardPage() {
   const navigate = useNavigate();
   const players = JSON.parse(localStorage.getItem('testPlayers') || '[]');
   const gameCode = localStorage.getItem('gameCode');
-  const linkRefs = useRef([]);
 
   if (!players.length || !gameCode) {
     return (
@@ -19,14 +18,11 @@ function TestDashboardPage() {
   const menuUrl = (playerName) =>
     `/menu/${gameCode}/${encodeURIComponent(playerName)}`;
 
-  // Programmatically click each hidden <a> ref — the only reliable way to open
-  // multiple tabs without a setTimeout (which breaks the user-gesture chain).
+  // Open every player in a new window within the same user-gesture handler.
   const handleOpenAll = () => {
-    // Open Players 2-N first (new tabs), then Player 1 navigates this tab
-    for (let i = 1; i < linkRefs.current.length; i++) {
-      if (linkRefs.current[i]) linkRefs.current[i].click();
-    }
-    if (linkRefs.current[0]) linkRefs.current[0].click();
+    players.forEach((player) => {
+      window.open(menuUrl(player.name), '_blank', 'noopener,noreferrer,width=430,height=900');
+    });
   };
 
   const handleOpenOne = (player, isFirst) => {
@@ -199,15 +195,6 @@ function TestDashboardPage() {
               border: '1px solid #ddd',
             }}
           >
-            {/* Hidden anchor used by "Open All" — clicking it triggers a real user-gesture open */}
-            <a
-              ref={(el) => (linkRefs.current[i] = el)}
-              href={menuUrl(player.name)}
-              target={i === 0 ? '_self' : '_blank'}
-              rel="noopener noreferrer"
-              style={{ display: 'none' }}
-            />
-
             <span>
               <strong>{player.name}</strong>{' '}
               <span style={{ color: '#888', fontSize: '0.8rem' }}>{player.email}</span>

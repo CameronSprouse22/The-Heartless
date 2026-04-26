@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { getRevealedVotes } from '../services/api';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getRevealedVotes, closeReveal } from '../services/api';
 
-function BanishRevealPage() {
-  const { gameCode } = useParams();
+function BanishRevealPage({ onClose }) {
+  const { gameCode, playerName } = useParams();
+  const navigate = useNavigate();
   const playerCode = sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode');
 
   const [revealedVotes, setRevealedVotes] = useState([]);
@@ -52,17 +53,6 @@ function BanishRevealPage() {
 
   return (
     <div style={{ padding: '1rem', minHeight: '100%', color: '#eee' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '0.25rem', color: '#fff' }}>
-        Vote Reveal
-      </h2>
-      <p style={{ textAlign: 'center', color: '#aaa', marginTop: 0, marginBottom: '1.25rem', fontSize: '0.9rem' }}>
-        {revealComplete
-          ? `All ${totalVotes} votes revealed`
-          : revealedVotes.length === 0
-            ? 'Waiting for votes to be revealed…'
-            : `Revealed ${revealedVotes.length} of ${totalVotes}`}
-      </p>
-
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
 
         {/* Left column — revealed vote cards */}
@@ -112,9 +102,16 @@ function BanishRevealPage() {
 
         {/* Right column — live tally */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: '#ccc', borderBottom: '1px solid #444', paddingBottom: '0.4rem' }}>
+          <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem', color: '#ccc', borderBottom: '1px solid #444', paddingBottom: '0.4rem' }}>
             Current Tally
           </h3>
+          <p style={{ margin: '0 0 0.75rem', color: '#aaa', fontSize: '0.85rem' }}>
+            {revealComplete
+              ? `All ${totalVotes} votes revealed`
+              : revealedVotes.length === 0
+                ? 'Waiting for votes…'
+                : `Revealed ${revealedVotes.length} of ${totalVotes}`}
+          </p>
 
           {tallyEntries.length === 0 ? (
             <p style={{ color: '#666', fontSize: '0.9rem', fontStyle: 'italic' }}>
@@ -142,6 +139,31 @@ function BanishRevealPage() {
             ))
           )}
         </div>
+      </div>
+
+      <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+        <button
+          disabled={!revealComplete}
+          onClick={async () => {
+            try { await closeReveal(gameCode, playerCode); } catch { /* ignore */ }
+            if (onClose) {
+              onClose();
+            } else {
+              navigate(`/menu/${gameCode}/${encodeURIComponent(playerName || '')}`);
+            }
+          }}
+          style={{
+            padding: '0.6rem 2rem',
+            background: revealComplete ? '#607d8b' : '#444',
+            color: revealComplete ? 'white' : '#888',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '1rem',
+            cursor: revealComplete ? 'pointer' : 'not-allowed',
+          }}
+        >
+          Close
+        </button>
       </div>
 
       <style>{`

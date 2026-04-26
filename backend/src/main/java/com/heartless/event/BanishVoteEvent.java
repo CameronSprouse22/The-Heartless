@@ -4,9 +4,14 @@ import com.heartless.config.GameConfigurations;
 import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
+import com.heartless.model.Player;
 import com.heartless.model.UserSelectionsState;
+import com.heartless.model.Vote;
+import com.heartless.model.enums.PlayerStatusEnum;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class BanishVoteEvent implements EventObjectInterface {
 
@@ -24,7 +29,14 @@ public class BanishVoteEvent implements EventObjectInterface {
     }
 
     @Override
-    public boolean endConditonsMeet(GameObject gameObject) { return false; }
+    public boolean endConditonsMeet(GameObject gameObject) {
+        return gameObject.getPlayerList().stream()
+                .filter(p -> !p.isDead() && p.getStatus() == PlayerStatusEnum.ACTIVE)
+                .allMatch(p -> {
+                    UserSelectionsState state = gameObject.getSelectionState(p.getId());
+                    return state != null && state.isSubmitPressed();
+                });
+    }
 
     @Override
     public ArrayList<UserSelectionsState> getUsersSelections() {
@@ -33,11 +45,10 @@ public class BanishVoteEvent implements EventObjectInterface {
 
     @Override
     public void onStart() {
-        if (game.getSelectionStateMap().isEmpty()) {
-            game.initSelectionStates(game.getPlayerList().stream()
-                    .map(p -> p.getId())
-                    .toList());
-        }
+        game.initSelectionStates(game.getPlayerList().stream()
+                .filter(p -> !p.isDead() && p.getStatus() == PlayerStatusEnum.ACTIVE)
+                .map(p -> p.getId())
+                .toList());
     }
 
     @Override
@@ -71,5 +82,66 @@ public class BanishVoteEvent implements EventObjectInterface {
     @Override
     public boolean checkForNotifications() {
         return true;
+    }
+
+    /**
+     * Resolves unsubmitted votes when the banish vote timer expires.
+     * <ol>
+     *   <li>If a player selected someone but did not submit, their vote resolves to that player.</li>
+     *   <li>If no current selection, the game resolves to the last alive player they previously voted for.</li>
+     *   <li>If they have never voted for a currently-alive player, a random alive player is chosen.</li>
+     * </ol>
+     */
+    @Override
+    public void resolveEvent() {
+        List<Player> alivePlayers = game.getPlayerList().stream()
+                .filter(p -> !p.isDead() && p.getStatus() == PlayerStatusEnum.ACTIVE)
+                .toList();
+
+        List<Vote> voteHistory = game.getBanishVotes();
+
+        for (Player player : alivePlayers) {
+            UserSelectionsState state = game.getSelectionState(player.getId());
+            if (state == null || state.isSubmitPressed()) continue;
+
+            Player target = null;
+
+            // Rule 1: player selected someone but never pressed submit
+            List<String> selected = state.getSelectedItems();
+            if (!selected.isEmpty()) {
+                Player candidate = game.findPlayerById(selected.get(0));
+                if (candidate != null && !candidate.isDead()) {
+                    target = candidate;
+                }
+            }
+
+            // Rule 2: no current selection — find the most recent prior vote whose target is still alive
+            if (target == null) {
+                for (int i = voteHistory.size() - 1; i >= 0; i--) {
+                    Vote v = voteHistory.get(i);
+                    if (v.getCastingPlayer().getId().equals(player.getId())) {
+                        Player candidate = v.getReceivingPlayer();
+                        if (!candidate.isDead()) {
+                            target = candidate;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Rule 3: never voted for any currently-alive player — pick at random
+            if (target == null) {
+                List<Player> candidates = alivePlayers.stream()
+                        .filter(p -> !p.getId().equals(player.getId()))
+                        .toList();
+                if (!candidates.isEmpty()) {
+                    target = candidates.get(new Random().nextInt(candidates.size()));
+                }
+            }
+
+            if (target != null) {
+                game.addBanishVote(new Vote(player, target));
+            }
+        }
     }
 }

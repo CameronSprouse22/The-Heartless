@@ -4,7 +4,7 @@ import VoteCard from '../components/VoteCard';
 import { getBanishCandidates, castBanishVote } from '../services/api';
 import { connect, disconnect, subscribe, send } from '../services/websocket';
 
-function BanishVotePage() {
+function BanishVotePage({ onClose }) {
   const { gameCode, playerName } = useParams();
   const navigate = useNavigate();
   const playerCode = sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode');
@@ -79,14 +79,13 @@ function BanishVotePage() {
   const toggleSelect = (id) => {
     const newSelected = selected === id ? null : id;
     setSelected(newSelected);
-    const targetName = newSelected
-      ? (candidates.find(c => c.id === newSelected)?.name || '')
-      : '';
-    setNameInput(targetName);
 
     // Broadcast live selection to other players via WebSocket
     if (stompConnected.current) {
       try {
+        const targetName = newSelected
+          ? (candidates.find(c => c.id === newSelected)?.name || '')
+          : '';
         send(`/app/games/${gameCode}/banish-selection`, { targetId: newSelected, targetName: targetName || null });
       } catch (e) { /* ignore if not yet connected */ }
     }
@@ -146,8 +145,7 @@ function BanishVotePage() {
       <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center', color: '#e0e0e0' }}>
         <h2>Vote Cast</h2>
         <p>Your banishment vote has been recorded.</p>
-        <OthersPanel />
-        <button onClick={() => navigate(`/menu/${gameCode}/${encodeURIComponent(playerName)}`)}>Back to Menu</button>
+        <button onClick={() => onClose ? onClose() : navigate(`/menu/${gameCode}/${encodeURIComponent(playerName)}`)}>Back to Menu</button>
       </div>
     );
   }
@@ -193,7 +191,6 @@ function BanishVotePage() {
       <button onClick={handleSubmit} disabled={!canSubmit} style={{ padding: '0.5rem 2rem' }}>
         Submit Vote
       </button>
-      <OthersPanel />
     </div>
   );
 }

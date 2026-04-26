@@ -6,6 +6,7 @@ import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
 import com.heartless.model.UserSelectionsState;
 import com.heartless.model.Vote;
+import com.heartless.model.enums.PlayerStatusEnum;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +17,8 @@ public class BanishRevealEvent implements EventObjectInterface {
 
     private final GameObject game;
     private Long startTime = null;
+    /** Snapshot of each player's text input from the vote phase, captured before onStart() resets states. */
+    private Map<String, String> voteTextSnapshot = new HashMap<>();
 
     public BanishRevealEvent(GameObject game) {
         this.game = game;
@@ -28,8 +31,28 @@ public class BanishRevealEvent implements EventObjectInterface {
     }
 
     @Override
+    public void onStart() {
+        // Snapshot text inputs from the vote phase before reinitializing selection states
+        game.getSelectionStateMap().forEach((playerId, state) -> {
+            String text = state.getTextFieldInput();
+            if (text != null && !text.isBlank()) {
+                voteTextSnapshot.put(playerId, text);
+            }
+        });
+        game.initSelectionStates(game.getPlayerList().stream()
+                .filter(p -> !p.isDead() && p.getStatus() == PlayerStatusEnum.ACTIVE)
+                .map(p -> p.getId())
+                .toList());
+    }
+
+    @Override
     public boolean endConditonsMeet(GameObject gameObject) {
-        return false;
+        return gameObject.getPlayerList().stream()
+                .filter(p -> !p.isDead() && p.getStatus() == PlayerStatusEnum.ACTIVE)
+                .allMatch(p -> {
+                    UserSelectionsState state = gameObject.getSelectionState(p.getId());
+                    return state != null && state.isSubmitPressed();
+                });
     }
 
     @Override
@@ -41,8 +64,7 @@ public class BanishRevealEvent implements EventObjectInterface {
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setRevealEnabled(true);
-        mc.setAllChatEnabled(true);
-        mc.setGameLogsEnabled(true);
+        mc.setCloseEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 
@@ -82,13 +104,11 @@ public class BanishRevealEvent implements EventObjectInterface {
         if (startTime == null) return null;
         List<Vote> votes = game.getBanishVotes();
         if (votes.isEmpty()) return List.of();
-        Map<String, UserSelectionsState> selStates = game.getSelectionStateMap();
         List<EventAction> actions = new ArrayList<>();
         long intervalMs = 5000L;
         for (int i = 0; i < votes.size(); i++) {
             Vote v = votes.get(i);
-            UserSelectionsState state = selStates.get(v.getCastingPlayer().getId());
-            String textInput = (state != null) ? state.getTextFieldInput() : "";
+            String textInput = voteTextSnapshot.getOrDefault(v.getCastingPlayer().getId(), "");
             Map<String, Object> action = new HashMap<>();
             action.put("player", v.getCastingPlayer().getName());
             action.put("vote", v.getReceivingPlayer().getName());

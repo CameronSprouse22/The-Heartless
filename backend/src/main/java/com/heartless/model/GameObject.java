@@ -31,9 +31,9 @@ public class GameObject {
     private Long endGameTime;
     private String lastMurderId;
     private MenuControl menuControl;
-    private final Map<String, UserSelectionsState> selectionStateMap;
     private final Map<String, EventMessageDismissalState> initialMessageDismissalMap;
     private final List<Vote> banishVotes;
+    private Map<String, UserSelectionsState> selectionStateMap;
 
     public GameObject(String gameIdCode) {
         this.gameId = ID_GENERATOR.getAndIncrement();
@@ -104,6 +104,8 @@ public class GameObject {
 
     public RoundObject startNewRound() {
         incrementRound();
+        banishVotes.clear();
+        selectionStateMap = new HashMap<>();
         RoundObject newRound = new RoundObject(this.round);
         roundList.add(newRound);
         return newRound;
@@ -141,7 +143,7 @@ public class GameObject {
 
     public void addBanishVote(Vote vote) { banishVotes.add(vote); }
     public List<Vote> getBanishVotes() { return new ArrayList<>(banishVotes); }
-
+    public void clearBanishVotes() { banishVotes.clear(); }
     // --- Selection State ---
 
     // --- Initial Message Dismissal ---

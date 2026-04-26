@@ -4,7 +4,7 @@ import VoteCard from '../components/VoteCard';
 import { getMurderCandidates, castMurderVote } from '../services/api';
 import { connect, disconnect, subscribe, send } from '../services/websocket';
 
-function MurderVotePage() {
+function MurderVotePage({ onClose }) {
   const { gameCode, playerName } = useParams();
   const navigate = useNavigate();
   const playerCode = sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode');
@@ -146,7 +146,7 @@ function MurderVotePage() {
         <h2>Vote Cast</h2>
         <p>Your murder vote has been recorded.</p>
         <OthersPanel />
-        <button onClick={() => navigate(`/menu/${gameCode}/${encodeURIComponent(playerName)}`)}>Back to Menu</button>
+        <button onClick={() => onClose ? onClose() : navigate(`/menu/${gameCode}/${encodeURIComponent(playerName)}`)}>Back to Menu</button>
       </div>
     );
   }

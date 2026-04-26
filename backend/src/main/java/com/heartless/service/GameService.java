@@ -38,6 +38,7 @@ public class GameService {
     private final CardAssignmentService cardAssignmentService;
     private final SimpMessagingTemplate messagingTemplate;
     private final PushNotificationService pushNotificationService;
+    private final VotingService votingService;
 
     // Maps playerCode -> { gameCode, playerId }
     private final ConcurrentHashMap<String, String[]> playerCodeMap = new ConcurrentHashMap<>();
@@ -46,13 +47,15 @@ public class GameService {
                        TraitorSelectionService traitorSelectionService,
                        CardAssignmentService cardAssignmentService,
                        @Lazy SimpMessagingTemplate messagingTemplate,
-                       PushNotificationService pushNotificationService) {
+                       PushNotificationService pushNotificationService,
+                       @Lazy VotingService votingService) {
         this.gameStore = gameStore;
         this.invitationService = invitationService;
         this.traitorSelectionService = traitorSelectionService;
         this.cardAssignmentService = cardAssignmentService;
         this.messagingTemplate = messagingTemplate;
         this.pushNotificationService = pushNotificationService;
+        this.votingService = votingService;
     }
 
     public Map<String, Object> createGame(String playerName) {
@@ -169,10 +172,10 @@ public class GameService {
 
         // Create and store the GameThread
         GameCriteriaObject criteria = new GameCriteriaObject();
-        TestingEvent testingEvent = new TestingEvent(game);
-        GameThread gameThread = new GameThread(game, criteria, List.of(testingEvent));
+        GameThread gameThread = new GameThread(game, criteria);
         gameThread.setMessagingTemplate(messagingTemplate);
         gameThread.setPushNotificationService(pushNotificationService);
+        gameThread.setVotingService(votingService);
         gameThread.gameInit();
         gameStore.putGameThread(gameCode, gameThread);
 

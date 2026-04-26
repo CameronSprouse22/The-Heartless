@@ -80,14 +80,7 @@ public class VoteController {
                     gameCode, playerId);
         }
 
-        // Broadcast to other clients
-        Map<String, Object> broadcast = new HashMap<>();
-        broadcast.put("type", "BANISH_SELECTION_UPDATE");
-        broadcast.put("voterId", playerId);
-        broadcast.put("voterName", player.getName());
-        broadcast.put("targetId", payload.getOrDefault("targetId", null));
-        broadcast.put("targetName", payload.getOrDefault("targetName", null));
-        messagingTemplate.convertAndSend("/topic/games/" + gameCode + "/banish-vote", broadcast);
+        // Do not broadcast selections to other clients during banish vote
     }
 
     /** Broadcast live (pre-submit) selection to other traitors on the murder vote page. */
@@ -211,6 +204,26 @@ public class VoteController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @PostMapping("/games/{gameCode}/reveal/close")
+    public ResponseEntity<Map<String, Object>> closeReveal(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        String playerId = gameService.getPlayerId(playerCode);
+        if (playerId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
+        }
+        GameObject game = gameStore.getGame(gameCode);
+        if (game == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Game not found"));
+        }
+        UserSelectionsState selState = game.getSelectionState(playerId);
+        if (selState == null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "No active reveal event"));
+        }
+        selState.setSubmitPressed(true);
+        return ResponseEntity.ok(Map.of("closed", true));
     }
 
     @PostMapping("/games/{gameCode}/vote/murder")

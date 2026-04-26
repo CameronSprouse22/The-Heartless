@@ -9,6 +9,7 @@ import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
 import com.heartless.push.PushNotificationService;
 import com.heartless.model.Player;
+import com.heartless.service.VotingService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -35,7 +36,7 @@ public class GameThread {
     private List<Player> skipRequestedList;
     private List<Player> pauseRequestedList;
     private List<Player> kickForInactivityRequestedList;
-
+    private VotingService votingService;
 
     public GameThread(GameObject gameObject, GameCriteriaObject gameCriteriaObject) {
         this.gameObject = gameObject;
@@ -69,36 +70,47 @@ public class GameThread {
      * Main game loop: iterate rounds executing events until criteria met.
      */
     public void gameStart() {
-        
+
         log.info("Game starting — gameId={}", gameObject.getGameId());
         this.statusString = "Round " + gameObject.getRound();
         gameObject.setCurrentTask("In progress");
 
-        eventList.add(new BanishPreEvent(gameObject)); 
-        eventList.add(new BanishVoteEvent(gameObject));  
-        eventList.add(new BanishRevealEvent(gameObject)); 
+        while(gameObject.getRound() <= MAX_ROUNDS) {
+            eventList.clear();
+            if (votingService != null) {
+                votingService.clearVotes(gameObject.getGameIdCode());
+            }
+            eventList.add(new BanishPreEvent(gameObject));
+            eventList.add(new BanishVoteEvent(gameObject));
+            eventList.add(new BanishRevealEvent(gameObject));
 
-        for (EventObjectInterface event : eventList) {
-            if (!event.checkStartConditions()) {
-                log.trace("Skipping event {} (conditions not met) — gameId={}",
-                        event.getClass().getSimpleName(), gameObject.getGameId());
-                continue;
+            for (EventObjectInterface event : eventList) {
+                if (!event.checkStartConditions()) {
+                    log.trace("Skipping event {} (conditions not met) — gameId={}",
+                            event.getClass().getSimpleName(), gameObject.getGameId());
+                    continue;
+                }
+                currentEvent = event;
+                log.debug("Starting event {} — gameId={}", event.getClass().getSimpleName(), gameObject.getGameId());
+                boolean completed = runCurrentEvent();
+                if (!completed) {
+                    log.info("Event {} did not complete — ending game. gameId={}",
+                            event.getClass().getSimpleName(), gameObject.getGameId());
+                    gameEnd();
+                    return;
+                }
+                if (!gameCriteriaObject.checkGameConditions(gameObject)) {
+                    log.info("Game criteria met after event {} — gameId={}",
+                            event.getClass().getSimpleName(), gameObject.getGameId());
+                    break;
+                }
             }
-            currentEvent = event;
-            log.debug("Starting event {} — gameId={}", event.getClass().getSimpleName(), gameObject.getGameId());
-            boolean completed = runCurrentEvent();
-            if (!completed) {
-                log.info("Event {} did not complete — ending game. gameId={}",
-                        event.getClass().getSimpleName(), gameObject.getGameId());
-                gameEnd();
-                return;
-            }
-            if (!gameCriteriaObject.checkGameConditions(gameObject)) {
-                log.info("Game criteria met after event {} — gameId={}",
-                        event.getClass().getSimpleName(), gameObject.getGameId());
-                break;
-            }
+
+            gameObject.startNewRound();
+
         }
+
+
     }
 
     /**
@@ -107,7 +119,7 @@ public class GameThread {
      * @return true if the event completed normally, false if it timed out
      */
     public boolean runCurrentEvent() {
-        log.warn("---->Starting "+currentEvent.getClass().getSimpleName());
+        log.warn("---->Starting " + currentEvent.getClass().getSimpleName());
         if (currentEvent == null) {
             log.warn("runCurrentEvent called with no current event — gameId={}", gameObject.getGameId());
             return false;
@@ -119,7 +131,8 @@ public class GameThread {
         }
         log.debug("Running event {} — round={} gameId={}",
                 currentEvent.getClass().getSimpleName(), gameObject.getRound(), gameObject.getGameId());
-        // Reset per-player initial-message dismissal so the intro overlay shows again for this event
+        // Reset per-player initial-message dismissal so the intro overlay shows again
+        // for this event
         gameObject.initInitialMessageDismissalStates();
         // Initialise event state once on start
         currentEvent.onStart();
@@ -129,9 +142,7 @@ public class GameThread {
                     "/topic/games/" + gameObject.getGameIdCode() + "/event",
                     java.util.Map.of(
                             "type", "EVENT_STARTED",
-                            "event", currentEvent.getClass().getSimpleName()
-                    )
-            );
+                            "event", currentEvent.getClass().getSimpleName()));
         }
         // Fire web push notification now that event state is ready
         if (currentEvent.checkForNotifications() && pushNotificationService != null) {
@@ -142,13 +153,23 @@ public class GameThread {
             }
         }
         // Loop until end condition is satisfied or time runs out
-        while (!currentEvent.endConditonsMeet(gameObject) || System.currentTimeMillis() >= currentEvent.getEventEndTime()) {
-            if (System.currentTimeMillis() >= currentEvent.getEventEndTime()) {
-                log.info("Event {} timed out — gameId={}",
-                        currentEvent.getClass().getSimpleName(), gameObject.getGameId());
+        boolean timedOut = false;
+        while (!currentEvent.endConditonsMeet(gameObject)
+                && System.currentTimeMillis() < currentEvent.getEventEndTime()) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 break;
             }
-            try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+        }
+        if (!currentEvent.endConditonsMeet(gameObject)) {
+            log.info("Event {} timed out — gameId={}",
+                    currentEvent.getClass().getSimpleName(), gameObject.getGameId());
+            timedOut = true;
+        }
+        if (timedOut) {
+            currentEvent.resolveEvent();
         }
         return true;
     }
@@ -196,8 +217,18 @@ public class GameThread {
         this.pushNotificationService = pushNotificationService;
     }
 
-    public java.util.ArrayList<GameRoundObject> getRoundObjects() { return roundObjects; }
-    public GameRoundObject getCurrentRoundObject() { return currentRoundObject; }
+    public void setVotingService(VotingService votingService) {
+        this.votingService = votingService;
+    }
+
+    public java.util.ArrayList<GameRoundObject> getRoundObjects() {
+        return roundObjects;
+    }
+
+    public GameRoundObject getCurrentRoundObject() {
+        return currentRoundObject;
+    }
+
     public void setCurrentRoundObject(GameRoundObject currentRoundObject) {
         this.currentRoundObject = currentRoundObject;
     }

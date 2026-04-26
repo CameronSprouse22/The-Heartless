@@ -1,5 +1,6 @@
 package com.heartless.controller;
 
+import com.heartless.event.BanishVoteEvent;
 import com.heartless.event.EventAction;
 import com.heartless.gamethread.GameState;
 import com.heartless.gamethread.GameThread;
@@ -152,9 +153,10 @@ public class GameController {
             // Restore player's selection state so the frontend can re-populate UI after a refresh
             UserSelectionsState selState = game.getSelectionState(playerId);
             if (selState != null) {
+                boolean isBanishVote = gameThread != null && gameThread.getCurrentEvent() instanceof BanishVoteEvent;
                 stateMap.put("mySelection", Map.of(
                         "selectedItems", selState.getSelectedItems(),
-                        "textFieldInput", selState.getTextFieldInput(),
+                        "textFieldInput", isBanishVote ? "" : selState.getTextFieldInput(),
                         "submitPressed", selState.isSubmitPressed()
                 ));
             }

@@ -3,6 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getMenu, getPlayerInfo, resolvePlayer, getChatCounts, dismissInitialMessage } from '../services/api';
 import GameStatusBar from '../components/GameStatusBar';
 import useNotifications from '../services/useNotifications';
+import BanishVotePage from './BanishVotePage';
+import MurderVotePage from './MurderVotePage';
+import BanishRevealPage from './BanishRevealPage';
+import AllChatPage from './AllChatPage';
+import TraitorChatPage from './TraitorChatPage';
+import IndividualChatPage from './IndividualChatPage';
+import DeadChatPage from './DeadChatPage';
 
 function formatTime(ms) {
   if (!ms || ms <= 0) return '0:00';
@@ -28,6 +35,7 @@ function MenuPage() {
   const [showInitialMessage, setShowInitialMessage] = useState(false);
   const [initialMessage, setInitialMessage] = useState('');
   const dismissedEventEndTimeRef = useRef(null);
+  const [activePanel, setActivePanel] = useState(null);
   // Track which eventEndTime we've already auto-navigated for (persisted across remounts)
   const getAutoNavDone = () => Number(sessionStorage.getItem('autoNavDoneEventEndTime') || 0);
   const setAutoNavDone = (t) => sessionStorage.setItem('autoNavDoneEventEndTime', String(t));
@@ -80,25 +88,24 @@ function MenuPage() {
       // Auto-navigate when exactly one server-controlled item is enabled
       const enabledItems = (menuData.menuItems || []).filter(i => i.enabled && i.visible);
       const currentEndTime = menuData.eventEndTime || 0;
+      const PANEL_IDS = ['banish-vote', 'murder-vote', 'reveal', 'all-chat', 'traitor-chat', 'individual-chat', 'dead-chat'];
       if (enabledItems.length === 1 && currentEndTime && getAutoNavDone() !== currentEndTime) {
-        setAutoNavDone(currentEndTime);
-        sessionStorage.setItem('autoNavEventEndTime', String(currentEndTime));
-        sessionStorage.setItem('autoNavMenuPath', `/menu/${gameCode}/${encodeURIComponent(playerName)}`);
         const navId = enabledItems[0].id;
-        const navPaths = {
-          'traitor-chat':    `/chat/${gameCode}/traitors`,
-          'all-chat':        `/chat/${gameCode}/all`,
-          'individual-chat': `/chat/${gameCode}/individual`,
-          'dead-chat':       `/chat/${gameCode}/dead`,
-          'banish-vote':     `/vote/${gameCode}/${encodeURIComponent(playerName)}/banish`,
-          'murder-vote':     `/vote/${gameCode}/${encodeURIComponent(playerName)}/murder`,
-          'reveal':          `/reveal/${gameCode}/${encodeURIComponent(playerName)}`,
-          'actions':         `/actions/${gameCode}`,
-          'game-options':    `/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`,
-          'game-logs':       `/logs/${gameCode}`,
-        };
-        const dest = navPaths[navId];
-        if (dest) { navigate(dest); return; }
+        if (PANEL_IDS.includes(navId)) {
+          setAutoNavDone(currentEndTime);
+          setActivePanel(navId);
+        } else {
+          setAutoNavDone(currentEndTime);
+          sessionStorage.setItem('autoNavEventEndTime', String(currentEndTime));
+          sessionStorage.setItem('autoNavMenuPath', `/menu/${gameCode}/${encodeURIComponent(playerName)}`);
+          const navPaths = {
+            'actions':         `/actions/${gameCode}`,
+            'game-options':    `/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`,
+            'game-logs':       `/logs/${gameCode}`,
+          };
+          const dest = navPaths[navId];
+          if (dest) { navigate(dest); return; }
+        }
       }
     } catch (err) {      if (err.status === 403) {
         sessionStorage.removeItem('playerCode');
@@ -204,13 +211,13 @@ function MenuPage() {
     if (channelKey) markChannelSeen(channelKey);
     switch (id) {
       case 'game':            navigate(`/event/${gameCode}`); break;
-      case 'traitor-chat':   navigate(`/chat/${gameCode}/traitors`); break;
-      case 'all-chat':       navigate(`/chat/${gameCode}/all`); break;
-      case 'individual-chat': navigate(`/chat/${gameCode}/individual`); break;
-      case 'dead-chat':      navigate(`/chat/${gameCode}/dead`); break;
-      case 'banish-vote':    navigate(`/vote/${gameCode}/${encodeURIComponent(playerName)}/banish`); break;
-      case 'murder-vote':    navigate(`/vote/${gameCode}/${encodeURIComponent(playerName)}/murder`); break;
-      case 'reveal':         navigate(`/reveal/${gameCode}/${encodeURIComponent(playerName)}`); break;
+      case 'traitor-chat':   setActivePanel('traitor-chat'); break;
+      case 'all-chat':       setActivePanel('all-chat'); break;
+      case 'individual-chat': setActivePanel('individual-chat'); break;
+      case 'dead-chat':      setActivePanel('dead-chat'); break;
+      case 'banish-vote':    setActivePanel('banish-vote'); break;
+      case 'murder-vote':    setActivePanel('murder-vote'); break;
+      case 'reveal':         setActivePanel('reveal'); break;
       case 'actions':        navigate(`/actions/${gameCode}`); break;
       case 'game-options':   navigate(`/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`); break;
       case 'game-logs':      navigate(`/logs/${gameCode}`); break;
@@ -342,6 +349,28 @@ function MenuPage() {
       </div>
 
       {error && <p style={{ color: 'red', padding: '1rem' }}>{error}</p>}
+
+      {activePanel && (
+        <div style={{ position: 'fixed', inset: 0, background: '#121212', zIndex: 100, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <GameStatusBar
+            gameStatus={menu?.statusString || menu?.gameStatus}
+            round={menu?.round}
+            playerName={menu?.playerName}
+            playersRemaining={menu?.playersRemaining}
+            eventType={menu?.eventType}
+            timeLeftMs={timeLeftMs}
+          />
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            {activePanel === 'banish-vote' && <BanishVotePage onClose={() => setActivePanel(null)} />}
+            {activePanel === 'murder-vote' && <MurderVotePage onClose={() => setActivePanel(null)} />}
+            {activePanel === 'reveal' && <BanishRevealPage onClose={() => setActivePanel(null)} />}
+            {activePanel === 'all-chat' && <AllChatPage onClose={() => setActivePanel(null)} />}
+            {activePanel === 'traitor-chat' && <TraitorChatPage onClose={() => setActivePanel(null)} />}
+            {activePanel === 'individual-chat' && <IndividualChatPage onClose={() => setActivePanel(null)} />}
+            {activePanel === 'dead-chat' && <DeadChatPage onClose={() => setActivePanel(null)} />}
+          </div>
+        </div>
+      )}
 
       {showInitialMessage && initialMessage && (
         <div style={{

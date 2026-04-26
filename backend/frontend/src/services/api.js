@@ -202,3 +202,10 @@ export function getRevealedVotes(gameCode, playerCode) {
     headers: authHeader(playerCode),
   });
 }
+
+export function closeReveal(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/reveal/close`, {
+    method: 'POST',
+    headers: authHeader(playerCode),
+  });
+}

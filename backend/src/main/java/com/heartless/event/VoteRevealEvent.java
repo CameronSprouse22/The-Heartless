@@ -34,8 +34,7 @@ public class VoteRevealEvent implements EventObjectInterface {
     @Override
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
-        mc.setAllChatEnabled(true);
-        mc.setGameLogsEnabled(true);
+        mc.setRevealEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 
