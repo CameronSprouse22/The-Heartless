@@ -1,22 +1,21 @@
 package com.heartless.event;
 
-import com.heartless.config.GameConfigurations;
 import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
 import com.heartless.model.Player;
+import com.heartless.model.RoundObject;
 import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Reveals the identity (Traitor or Faithful) of every player to all participants.
- * Players are revealed one at a time in a randomised order, spaced 4 seconds apart,
- * with a 5-second lead-in so the frontend can build suspense before the first card flips.
+ * Reveals the identity (Traitor or Faithful) of the player who was just banished.
+ * Runs at the end of every round, immediately after BanishRevealEvent.
+ * A single player card is revealed with a 5-second lead-in for suspense.
  */
 public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
@@ -25,8 +24,8 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     private final GameObject game;
     private Long startTime = null;
-    /** Shuffled snapshot of players taken when the event starts. */
-    private List<Player> shuffledPlayers = null;
+    /** The player who was banished this round, captured when the event starts. */
+    private Player banishedPlayer = null;
 
     public RevealPlayerIdentityEvent(GameObject game) {
         this.game = game;
@@ -40,10 +39,8 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     @Override
     public void onStart() {
-        // Snapshot and shuffle all players (including dead ones for a full identity reveal)
-        List<Player> all = new ArrayList<>(game.getPlayerList());
-        Collections.shuffle(all);
-        shuffledPlayers = all;
+        RoundObject round = game.getCurrentRound();
+        banishedPlayer = (round != null) ? round.getPlayerBanished() : null;
     }
 
     @Override
@@ -66,10 +63,8 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     @Override
     public long getEventTime() {
-        // Compute exactly how long the sequence takes, with a 5s buffer after the last reveal
-        int count = (shuffledPlayers != null) ? shuffledPlayers.size() : game.getPlayerList().size();
-        long computedDuration = LEAD_IN_MS + (long) count * INTERVAL_MS + 5_000L;
-        return Math.max(computedDuration, GameConfigurations.REVEAL_PLAYER_IDENTITY_EVENT_DURATION_MS);
+        // Lead-in for suspense + one reveal interval + buffer after the card flips
+        return LEAD_IN_MS + INTERVAL_MS + 5_000L;
     }
 
     @Override
@@ -80,12 +75,12 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     @Override
     public String getStartNotification() {
-        return "The identities of all players are about to be revealed.";
+        return "The identity of the banished player is about to be revealed.";
     }
 
     @Override
     public String getInitialMessage() {
-        return "The truth is coming. Watch closely as each player's identity is unveiled.";
+        return "Were they a Traitor? Find out now.";
     }
 
     @Override
@@ -94,32 +89,19 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
     }
 
     /**
-     * Returns a timed sequence of identity reveals — one EventAction per player.
-     * Each action's object contains:
-     * <ul>
-     *   <li>{@code playerId}   — player's UUID</li>
-     *   <li>{@code playerName} — player's display name</li>
-     *   <li>{@code isTraitor}  — boolean</li>
-     *   <li>{@code role}       — "TRAITOR" or "FAITHFUL"</li>
-     *   <li>{@code isDead}     — boolean (for visual distinction)</li>
-     * </ul>
+     * Returns a single timed reveal action for the banished player.
+     * The reveal fires {@code LEAD_IN_MS} after the event starts, giving the
+     * frontend time to build suspense before the card flips.
      */
     @Override
     public List<EventAction> getEvents() {
-        if (startTime == null || shuffledPlayers == null) return null;
-
-        List<EventAction> actions = new ArrayList<>();
-        for (int i = 0; i < shuffledPlayers.size(); i++) {
-            Player p = shuffledPlayers.get(i);
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("playerId", p.getId());
-            payload.put("playerName", p.getName());
-            payload.put("isTraitor", p.isTraitor());
-            payload.put("role", p.isTraitor() ? "TRAITOR" : "FAITHFUL");
-            payload.put("isDead", p.isDead());
-            long executeTime = startTime + LEAD_IN_MS + (long) i * INTERVAL_MS;
-            actions.add(new EventAction(payload, executeTime));
-        }
-        return actions;
+        if (startTime == null || banishedPlayer == null) return List.of();
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("playerId", banishedPlayer.getId());
+        payload.put("playerName", banishedPlayer.getName());
+        payload.put("isTraitor", banishedPlayer.isTraitor());
+        payload.put("role", banishedPlayer.isTraitor() ? "TRAITOR" : "FAITHFUL");
+        payload.put("isDead", banishedPlayer.isDead());
+        return List.of(new EventAction(payload, startTime + LEAD_IN_MS));
     }
 }

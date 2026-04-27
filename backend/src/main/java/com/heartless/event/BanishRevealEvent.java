@@ -4,6 +4,7 @@ import com.heartless.config.GameConfigurations;
 import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
+import com.heartless.model.RoundObject;
 import com.heartless.model.UserSelectionsState;
 import com.heartless.model.Vote;
 import com.heartless.model.enums.PlayerStatusEnum;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class BanishRevealEvent implements EventObjectInterface {
 
@@ -43,6 +45,23 @@ public class BanishRevealEvent implements EventObjectInterface {
                 .filter(p -> !p.isDead() && p.getStatus() == PlayerStatusEnum.ACTIVE)
                 .map(p -> p.getId())
                 .toList());
+
+        // Apply banishment: the player receiving the most votes is banished
+        List<Vote> votes = game.getBanishVotes();
+        if (!votes.isEmpty()) {
+            Map<String, Long> tally = votes.stream()
+                    .collect(Collectors.groupingBy(v -> v.getReceivingPlayer().getId(), Collectors.counting()));
+            tally.entrySet().stream()
+                    .max(Map.Entry.comparingByValue())
+                    .ifPresent(e -> game.getPlayerList().stream()
+                            .filter(p -> p.getId().equals(e.getKey()))
+                            .findFirst()
+                            .ifPresent(winner -> {
+                                winner.setDead(true);
+                                RoundObject round = game.getCurrentRound();
+                                if (round != null) round.setPlayerBanished(winner);
+                            }));
+        }
     }
 
     @Override
