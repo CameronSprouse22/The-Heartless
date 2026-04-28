@@ -2,6 +2,7 @@ package com.heartless.gamethread;
 
 import com.heartless.event.AfterLifeGameEvent;
 import com.heartless.event.EventObjectInterface;
+import com.heartless.event.RevealPlayerIdentityEvent;
 import com.heartless.event.BanishPreEvent;
 import com.heartless.event.BanishRevealEvent;
 import com.heartless.event.BanishVoteEvent;
@@ -64,7 +65,7 @@ public class GameThread {
         log.debug("gameInit complete — game loop started in background — status={}", this.statusString);
     }
 
-    private static final int MAX_ROUNDS = 100;
+    private static final int MAX_ROUNDS = 2;
 
     /**
      * Main game loop: iterate rounds executing events until criteria met.
@@ -80,9 +81,12 @@ public class GameThread {
             if (votingService != null) {
                 votingService.clearVotes(gameObject.getGameIdCode());
             }
+
+            
             eventList.add(new BanishPreEvent(gameObject));
             eventList.add(new BanishVoteEvent(gameObject));
             eventList.add(new BanishRevealEvent(gameObject));
+            eventList.add(new RevealPlayerIdentityEvent(gameObject));
 
             for (EventObjectInterface event : eventList) {
                 if (!event.checkStartConditions()) {

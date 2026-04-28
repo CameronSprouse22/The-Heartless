@@ -5,22 +5,17 @@ import { getIdentityReveal } from '../services/api';
 // Inject keyframe animations once
 const STYLE_ID = 'identity-reveal-styles';
 const KEYFRAMES = `
-  @keyframes ir-pulse {
-    0%, 100% { opacity: 0.5; transform: scale(1); }
-    50% { opacity: 0.8; transform: scale(1.04); }
+  @keyframes ir-line-in {
+    0%   { opacity: 0; transform: translateX(-24px); }
+    100% { opacity: 1; transform: translateX(0); }
   }
-  @keyframes ir-drop {
-    0% { opacity: 0; transform: scale(0.6) translateY(-20px); }
-    60% { transform: scale(1.08) translateY(2px); }
-    100% { opacity: 1; transform: scale(1) translateY(0); }
+  @keyframes ir-role-fade {
+    0%   { opacity: 0; letter-spacing: 0.4em; }
+    100% { opacity: 1; letter-spacing: 0.15em; }
   }
-  @keyframes ir-glow-traitor {
-    0%, 100% { box-shadow: 0 0 10px 2px rgba(220,50,50,0.4); }
-    50% { box-shadow: 0 0 22px 6px rgba(220,50,50,0.8); }
-  }
-  @keyframes ir-glow-faithful {
-    0%, 100% { box-shadow: 0 0 10px 2px rgba(50,120,220,0.4); }
-    50% { box-shadow: 0 0 22px 6px rgba(50,120,220,0.8); }
+  @keyframes ir-pending-pulse {
+    0%, 100% { opacity: 0.3; }
+    50%       { opacity: 0.6; }
   }
 `;
 
@@ -33,83 +28,82 @@ function injectStyles() {
   }
 }
 
-function PendingCard() {
+function PendingRow() {
   return (
     <div style={{
-      width: '100%',
-      aspectRatio: '2/3',
-      borderRadius: '10px',
-      background: '#1a1a2e',
-      border: '1px solid #333',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      animation: 'ir-pulse 2s ease-in-out infinite',
-      cursor: 'default',
+      padding: '0.65rem 1rem',
+      borderBottom: '1px solid #1e1e2e',
+      animation: 'ir-pending-pulse 2s ease-in-out infinite',
     }}>
-      <span style={{ fontSize: '2rem', color: '#555', userSelect: 'none' }}>?</span>
+      <div style={{
+        flex: 1,
+        height: '12px',
+        borderRadius: '4px',
+        background: '#2a2a3e',
+        outline: '1px solid #333',
+      }} />
+      <div style={{
+        width: '80px',
+        height: '12px',
+        borderRadius: '4px',
+        background: '#2a2a3e',
+        marginLeft: '1rem',
+        outline: '1px solid #333',
+      }} />
     </div>
   );
 }
 
-function RevealedCard({ player, isNew }) {
+function RevealedRow({ player, isNew }) {
   const isTraitor = player.isTraitor;
-  const isDead = player.isDead;
-
-  const bg = isTraitor
-    ? 'linear-gradient(160deg, #5c0a0a 0%, #8b0000 100%)'
-    : 'linear-gradient(160deg, #0a2a5c 0%, #0d47a1 100%)';
-
-  const glowAnim = isTraitor ? 'ir-glow-traitor 2.5s ease-in-out infinite' : 'ir-glow-faithful 2.5s ease-in-out infinite';
+  const roleColor = isTraitor ? '#ff6b6b' : '#82b1ff';
+  const roleLabel = isTraitor ? 'TRAITOR' : 'FAITHFUL';
+  const roleIcon  = isTraitor ? '🗡️' : '🛡️';
+  const borderColor = isTraitor ? 'rgba(200,50,50,0.5)' : 'rgba(50,100,200,0.4)';
 
   return (
     <div style={{
-      width: '100%',
-      aspectRatio: '2/3',
-      borderRadius: '10px',
-      background: bg,
-      border: `2px solid ${isTraitor ? '#cc3333' : '#2255cc'}`,
       display: 'flex',
-      flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0.6rem 0.4rem',
-      animation: isNew
-        ? 'ir-drop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards, ' + glowAnim
-        : glowAnim,
-      cursor: 'default',
-      position: 'relative',
-      overflow: 'hidden',
+      padding: '0.65rem 1rem',
+      borderBottom: `1px solid ${borderColor}`,
+      animation: isNew ? 'ir-line-in 0.45s cubic-bezier(0.22,1,0.36,1) forwards' : 'none',
+      background: isNew
+        ? isTraitor
+          ? 'linear-gradient(90deg, rgba(90,10,10,0.35) 0%, transparent 80%)'
+          : 'linear-gradient(90deg, rgba(10,30,80,0.35) 0%, transparent 80%)'
+        : 'transparent',
     }}>
-      {/* Role icon */}
-      <div style={{ fontSize: '2rem', marginTop: '0.2rem' }}>
-        {isTraitor ? '🗡️' : '⚔️'}
-      </div>
-
-      {/* Role label */}
-      <div style={{
-        fontSize: '0.8rem',
-        fontWeight: 'bold',
-        letterSpacing: '0.15em',
-        color: isTraitor ? '#ff8a8a' : '#82b1ff',
-        textAlign: 'center',
-        textTransform: 'uppercase',
-      }}>
-        {isTraitor ? 'Traitor' : 'Faithful'}
-      </div>
-
       {/* Player name */}
-      <div style={{
-        fontSize: '0.75rem',
-        color: '#ddd',
-        textAlign: 'center',
-        wordBreak: 'break-word',
-        lineHeight: '1.2',
-        padding: '0 0.2rem',
+      <span style={{
+        flex: 1,
+        fontSize: '1rem',
+        color: '#e0e0e0',
+        fontWeight: '500',
+        letterSpacing: '0.04em',
+        outline: isNew ? `1px solid ${borderColor}` : 'none',
+        borderRadius: '3px',
+        padding: '0.1rem 0.3rem',
+        transition: 'outline 0.6s ease',
       }}>
         {player.playerName}
-        {isDead && <span style={{ display: 'block', fontSize: '0.65rem', color: '#888', marginTop: '2px' }}>☠️ Dead</span>}
-      </div>
+      </span>
+
+      {/* Role badge — fades in with a slight delay */}
+      <span style={{
+        fontSize: '0.8rem',
+        fontWeight: 'bold',
+        color: roleColor,
+        textTransform: 'uppercase',
+        letterSpacing: '0.15em',
+        marginLeft: '1rem',
+        animation: isNew ? 'ir-role-fade 0.7s ease 0.35s both' : 'none',
+        whiteSpace: 'nowrap',
+      }}>
+        {roleIcon} {roleLabel}
+      </span>
     </div>
   );
 }
@@ -197,9 +191,9 @@ function IdentityRevealPage({ onClose }) {
         {/* Progress bar */}
         <div style={{ margin: '0.6rem auto', maxWidth: '280px' }}>
           <div style={{
-            height: '6px',
+            height: '4px',
             background: '#222',
-            borderRadius: '3px',
+            borderRadius: '2px',
             overflow: 'hidden',
           }}>
             <div style={{
@@ -207,7 +201,7 @@ function IdentityRevealPage({ onClose }) {
               width: totalPlayers > 0 ? `${(revealedPlayers.length / totalPlayers) * 100}%` : '0%',
               background: 'linear-gradient(90deg, #0d47a1, #8b0000)',
               transition: 'width 0.8s ease',
-              borderRadius: '3px',
+              borderRadius: '2px',
             }} />
           </div>
           <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.3rem' }}>
@@ -219,28 +213,28 @@ function IdentityRevealPage({ onClose }) {
         {/* Tally */}
         {revealedPlayers.length > 0 && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', fontSize: '0.85rem' }}>
-            <span style={{ color: '#ff8a8a' }}>🗡️ {traitorCount} Traitor{traitorCount !== 1 ? 's' : ''}</span>
-            <span style={{ color: '#82b1ff' }}>⚔️ {faithfulCount} Faithful</span>
+            <span style={{ color: '#ff6b6b' }}>🗡️ {traitorCount} Traitor{traitorCount !== 1 ? 's' : ''}</span>
+            <span style={{ color: '#82b1ff' }}>🛡️ {faithfulCount} Faithful</span>
           </div>
         )}
       </div>
 
-      {/* Card grid */}
+      {/* Player list */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '0.6rem',
         flex: 1,
+        border: '1px solid #1e1e2e',
+        borderRadius: '8px',
+        overflow: 'hidden',
       }}>
         {revealedPlayers.map((player, idx) => (
-          <RevealedCard
+          <RevealedRow
             key={player.playerId || idx}
             player={player}
             isNew={newIndicesRef.current.has(idx)}
           />
         ))}
         {Array.from({ length: pendingCount }).map((_, i) => (
-          <PendingCard key={`pending-${i}`} />
+          <PendingRow key={`pending-${i}`} />
         ))}
       </div>
 

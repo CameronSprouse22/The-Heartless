@@ -4,7 +4,6 @@ import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
 import com.heartless.model.Player;
-import com.heartless.model.RoundObject;
 import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
@@ -13,9 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Reveals the identity (Traitor or Faithful) of the player who was just banished.
- * Runs at the end of every round, immediately after BanishRevealEvent.
- * A single player card is revealed with a 5-second lead-in for suspense.
+ * Reveals the identity (Traitor or Faithful) of all players.
  */
 public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
@@ -24,8 +21,6 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     private final GameObject game;
     private Long startTime = null;
-    /** The player who was banished this round, captured when the event starts. */
-    private Player banishedPlayer = null;
 
     public RevealPlayerIdentityEvent(GameObject game) {
         this.game = game;
@@ -39,13 +34,10 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     @Override
     public void onStart() {
-        RoundObject round = game.getCurrentRound();
-        banishedPlayer = (round != null) ? round.getPlayerBanished() : null;
     }
 
     @Override
     public boolean endConditonsMeet(GameObject gameObject) {
-        // Ends only when the timer expires
         return false;
     }
 
@@ -63,8 +55,9 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     @Override
     public long getEventTime() {
-        // Lead-in for suspense + one reveal interval + buffer after the card flips
-        return LEAD_IN_MS + INTERVAL_MS + 5_000L;
+        int playerCount = game.getPlayerList().size();
+        // Lead-in + one interval per player + buffer after the last card flips
+        return LEAD_IN_MS + ((long) playerCount * INTERVAL_MS) + 5_000L;
     }
 
     @Override
@@ -75,12 +68,12 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     @Override
     public String getStartNotification() {
-        return "The identity of the banished player is about to be revealed.";
+        return "The identities of all players are about to be revealed.";
     }
 
     @Override
     public String getInitialMessage() {
-        return "Were they a Traitor? Find out now.";
+        return "Find out who the Traitors were.";
     }
 
     @Override
@@ -89,19 +82,25 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
     }
 
     /**
-     * Returns a single timed reveal action for the banished player.
-     * The reveal fires {@code LEAD_IN_MS} after the event starts, giving the
-     * frontend time to build suspense before the card flips.
+     * Returns one timed reveal action per player, staggered by {@code INTERVAL_MS}.
+     * The first reveal fires {@code LEAD_IN_MS} after the event starts.
      */
     @Override
     public List<EventAction> getEvents() {
-        if (startTime == null || banishedPlayer == null) return List.of();
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("playerId", banishedPlayer.getId());
-        payload.put("playerName", banishedPlayer.getName());
-        payload.put("isTraitor", banishedPlayer.isTraitor());
-        payload.put("role", banishedPlayer.isTraitor() ? "TRAITOR" : "FAITHFUL");
-        payload.put("isDead", banishedPlayer.isDead());
-        return List.of(new EventAction(payload, startTime + LEAD_IN_MS));
+        if (startTime == null) return List.of();
+
+        List<Player> players = game.getPlayerList();
+        List<EventAction> actions = new ArrayList<>();
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("playerId", player.getId());
+            payload.put("playerName", player.getName());
+            payload.put("isTraitor", player.isTraitor());
+            payload.put("role", player.isTraitor() ? "TRAITOR" : "FAITHFUL");
+            long fireAt = startTime + LEAD_IN_MS + ((long) i * INTERVAL_MS);
+            actions.add(new EventAction(payload, fireAt));
+        }
+        return actions;
     }
 }
