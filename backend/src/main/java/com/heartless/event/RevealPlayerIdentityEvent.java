@@ -53,7 +53,7 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
         return GameState.fromEvent(mc, game, this);
     }
 
-    @Override
+    @Override 
     public long getEventTime() {
         int playerCount = game.getPlayerList().size();
         // Lead-in + one interval per player + buffer after the last card flips

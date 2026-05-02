@@ -20,6 +20,7 @@ public class Player {
     private PlayerStatusEnum status;
     private boolean isDead;
     private boolean isTraitor;
+    private boolean hasBeenRevealed;
     private List<ItemsInterface> items;
     private Card card;
 
@@ -33,6 +34,7 @@ public class Player {
         this.status = PlayerStatusEnum.PENDING;
         this.isDead = false;
         this.isTraitor = false;
+        this.hasBeenRevealed = false;
         this.items = new ArrayList<>();
         this.card = null;
     }
@@ -65,6 +67,8 @@ public class Player {
     public void setDead(boolean dead) { isDead = dead; }
     public boolean isTraitor() { return isTraitor; }
     public void setTraitor(boolean traitor) { isTraitor = traitor; }
+    public boolean isHasBeenRevealed() { return hasBeenRevealed; }
+    public void setHasBeenRevealed(boolean hasBeenRevealed) { this.hasBeenRevealed = hasBeenRevealed; }
     public List<ItemsInterface> getItems() { return items; }
     public void setItems(List<ItemsInterface> items) { this.items = Objects.requireNonNull(items); }
     public Card getCard() { return card; }

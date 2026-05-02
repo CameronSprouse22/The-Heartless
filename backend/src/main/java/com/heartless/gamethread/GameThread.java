@@ -83,9 +83,10 @@ public class GameThread {
             }
 
             
-            eventList.add(new BanishPreEvent(gameObject));
-            eventList.add(new BanishVoteEvent(gameObject));
-            eventList.add(new BanishRevealEvent(gameObject));
+            // eventList.add(new BanishPreEvent(gameObject));
+            // eventList.add(new BanishVoteEvent(gameObject));
+            // eventList.add(new BanishRevealEvent(gameObject));
+            eventList.add(new RevealPlayerIdentityEvent(gameObject));
             eventList.add(new RevealPlayerIdentityEvent(gameObject));
 
             for (EventObjectInterface event : eventList) {

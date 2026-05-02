@@ -17,15 +17,21 @@ const KEYFRAMES = `
     0%, 100% { opacity: 0.3; }
     50%       { opacity: 0.6; }
   }
+  @keyframes ir-flip {
+    0%   { transform: perspective(400px) rotateY(90deg); opacity: 0; }
+    60%  { transform: perspective(400px) rotateY(8deg);  opacity: 1; }
+    100% { transform: perspective(400px) rotateY(0deg);  opacity: 1; }
+  }
 `;
 
 function injectStyles() {
-  if (!document.getElementById(STYLE_ID)) {
-    const el = document.createElement('style');
+  let el = document.getElementById(STYLE_ID);
+  if (!el) {
+    el = document.createElement('style');
     el.id = STYLE_ID;
-    el.textContent = KEYFRAMES;
     document.head.appendChild(el);
   }
+  el.textContent = KEYFRAMES;
 }
 
 function PendingRow() {
@@ -57,11 +63,52 @@ function PendingRow() {
 }
 
 function RevealedRow({ player, isNew }) {
-  const isTraitor = player.isTraitor;
-  const roleColor = isTraitor ? '#ff6b6b' : '#82b1ff';
-  const roleLabel = isTraitor ? 'TRAITOR' : 'FAITHFUL';
-  const roleIcon  = isTraitor ? '🗡️' : '🛡️';
-  const borderColor = isTraitor ? 'rgba(200,50,50,0.5)' : 'rgba(50,100,200,0.4)';
+  // During shuffle phase, display the opposite role to start, then alternate
+  const [displayTraitor, setDisplayTraitor] = useState(!player.isTraitor);
+  const [flipKey, setFlipKey]               = useState(0);
+  const [flipDuration, setFlipDuration]     = useState(1000);
+  const [shuffling, setShuffling]           = useState(isNew);
+
+  useEffect(() => {
+    if (!isNew) return;
+
+    // 9 flips (odd): starts fast → slows down → settles on true identity
+    // Pre-compute durations: start at 80ms, multiply by 1.55 each flip
+    const TOTAL_FLIPS = 9;
+    const durations = [];
+    let d = 80;
+    for (let i = 0; i < TOTAL_FLIPS; i++) {
+      durations.push(Math.round(d));
+      d *= 1.55;
+    }
+
+    let flips = 0;
+    let timeoutId;
+    let currentRole = !player.isTraitor;
+
+    function doFlip() {
+      currentRole = !currentRole;
+      flips++;
+      const isLast = flips >= TOTAL_FLIPS;
+      setFlipDuration(durations[flips - 1]);
+      setDisplayTraitor(isLast ? player.isTraitor : currentRole);
+      setFlipKey(k => k + 1);
+      if (isLast) {
+        setShuffling(false);
+      } else {
+        timeoutId = setTimeout(doFlip, durations[flips]);
+      }
+    }
+
+    timeoutId = setTimeout(doFlip, durations[0]);
+    return () => clearTimeout(timeoutId);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const showTraitor  = shuffling ? displayTraitor : player.isTraitor;
+  const roleColor    = showTraitor ? '#ff6b6b' : '#82b1ff';
+  const roleLabel    = showTraitor ? 'TRAITOR' : 'FAITHFUL';
+  const roleIcon     = showTraitor ? '🗡️' : '🛡️';
+  const borderColor  = showTraitor ? 'rgba(200,50,50,0.5)' : 'rgba(50,100,200,0.4)';
 
   return (
     <div style={{
@@ -69,12 +116,11 @@ function RevealedRow({ player, isNew }) {
       alignItems: 'center',
       padding: '0.65rem 1rem',
       borderBottom: `1px solid ${borderColor}`,
-      animation: isNew ? 'ir-line-in 0.45s cubic-bezier(0.22,1,0.36,1) forwards' : 'none',
-      background: isNew
-        ? isTraitor
-          ? 'linear-gradient(90deg, rgba(90,10,10,0.35) 0%, transparent 80%)'
-          : 'linear-gradient(90deg, rgba(10,30,80,0.35) 0%, transparent 80%)'
-        : 'transparent',
+      animation: (!shuffling && isNew) ? 'ir-line-in 0.45s cubic-bezier(0.22,1,0.36,1) forwards' : 'none',
+      background: showTraitor
+        ? 'linear-gradient(90deg, rgba(90,10,10,0.35) 0%, transparent 80%)'
+        : 'linear-gradient(90deg, rgba(10,30,80,0.35) 0%, transparent 80%)',
+      transition: 'background 0.15s ease, border-color 0.15s ease',
     }}>
       {/* Player name */}
       <span style={{
@@ -86,22 +132,30 @@ function RevealedRow({ player, isNew }) {
         outline: isNew ? `1px solid ${borderColor}` : 'none',
         borderRadius: '3px',
         padding: '0.1rem 0.3rem',
-        transition: 'outline 0.6s ease',
+        transition: 'outline 0.3s ease',
       }}>
         {player.playerName}
       </span>
 
-      {/* Role badge — fades in with a slight delay */}
-      <span style={{
-        fontSize: '0.8rem',
-        fontWeight: 'bold',
-        color: roleColor,
-        textTransform: 'uppercase',
-        letterSpacing: '0.15em',
-        marginLeft: '1rem',
-        animation: isNew ? 'ir-role-fade 0.7s ease 0.35s both' : 'none',
-        whiteSpace: 'nowrap',
-      }}>
+      {/* Role badge — hidden while shuffling, fades in on final reveal */}
+      <span
+        key={flipKey}
+        style={{
+          fontSize: '0.8rem',
+          fontWeight: 'bold',
+          color: roleColor,
+          textTransform: 'uppercase',
+          letterSpacing: '0.15em',
+          marginLeft: '1rem',
+          whiteSpace: 'nowrap',
+          display: 'inline-block',
+          visibility: shuffling ? 'hidden' : 'visible',
+          animationName: !shuffling && isNew ? 'ir-role-fade' : 'none',
+          animationDuration: '0.7s',
+          animationFillMode: 'both',
+          animationTimingFunction: 'ease',
+        }}
+      >
         {roleIcon} {roleLabel}
       </span>
     </div>

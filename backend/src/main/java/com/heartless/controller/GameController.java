@@ -314,6 +314,18 @@ public class GameController {
                     .filter(a -> a.getExecuteTime() != null && a.getExecuteTime() <= now)
                     .map(EventAction::getActionObject)
                     .collect(java.util.stream.Collectors.toList());
+            // Mark each revealed player's hasBeenRevealed flag
+            for (Object obj : revealed) {
+                if (obj instanceof java.util.Map<?, ?> payload) {
+                    Object pid = payload.get("playerId");
+                    if (pid instanceof String playerIdStr) {
+                        Player revealedPlayer = game.findPlayerById(playerIdStr);
+                        if (revealedPlayer != null && !revealedPlayer.isHasBeenRevealed()) {
+                            revealedPlayer.setHasBeenRevealed(true);
+                        }
+                    }
+                }
+            }
             Map<String, Object> result = new HashMap<>();
             result.put("revealedPlayers", revealed);
             result.put("totalPlayers", actions.size());
