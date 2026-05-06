@@ -1,5 +1,6 @@
 package com.heartless.service;
 
+import com.heartless.gamethread.GameThread;
 import com.heartless.model.GameObject;
 import com.heartless.model.Player;
 import com.heartless.model.UserSelectionsState;
@@ -52,8 +53,10 @@ public class VotingService {
     }
 
     private List<Map<String, Object>> buildCandidateList(GameObject game, String excludePlayerId) {
+        List<String> tieIds = game.getTieBreakCandidateIds();
         return game.getPlayerList().stream()
                 .filter(p -> p.getStatus() == PlayerStatusEnum.ACTIVE && !p.isDead() && !p.getId().equals(excludePlayerId))
+                .filter(p -> tieIds.isEmpty() || tieIds.contains(p.getId()))
                 .map(p -> {
                     Map<String, Object> c = new HashMap<>();
                     c.put("id", p.getId());
@@ -87,8 +90,17 @@ public class VotingService {
             throw new IllegalArgumentException("Cannot vote for yourself");
         }
 
+        // Reject votes submitted after the event deadline
+        GameThread thread = gameStore.getGameThread(gameCode);
+        if (thread != null && thread.getCurrentEvent() != null
+                && System.currentTimeMillis() > thread.getCurrentEvent().getEventEndTime()) {
+            throw new IllegalStateException("Voting period has ended");
+        }
+
         List<Vote> votes = banishVotes.computeIfAbsent(gameCode, k -> Collections.synchronizedList(new ArrayList<>()));
-        boolean alreadyVoted = votes.stream().anyMatch(v -> v.getCastingPlayer().getId().equals(voterId));
+        // Check both the service-level list and the game-level list to catch races with resolveEvent
+        boolean alreadyVoted = votes.stream().anyMatch(v -> v.getCastingPlayer().getId().equals(voterId))
+                || game.getBanishVotes().stream().anyMatch(v -> v.getCastingPlayer().getId().equals(voterId));
         if (alreadyVoted) {
             throw new IllegalStateException("Already voted this round");
         }
@@ -188,6 +200,13 @@ public class VotingService {
 
         if (voter.isDead()) {
             throw new IllegalStateException("Dead players cannot vote");
+        }
+
+        // Reject votes submitted after the event deadline
+        GameThread murderThread = gameStore.getGameThread(gameCode);
+        if (murderThread != null && murderThread.getCurrentEvent() != null
+                && System.currentTimeMillis() > murderThread.getCurrentEvent().getEventEndTime()) {
+            throw new IllegalStateException("Voting period has ended");
         }
 
         for (String targetId : targetIds) {

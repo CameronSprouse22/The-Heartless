@@ -1,5 +1,7 @@
 package com.heartless.gamethread;
 
+import com.heartless.model.Player;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,6 +12,7 @@ public class BanishResult {
 
     private final List<VoteObject> votes = new ArrayList<>();
     private GameRoundObject.RoundStatus status = GameRoundObject.RoundStatus.NOTSTARTED;
+    private Player banishedPlayer;
 
     public List<VoteObject> getVotes() { return votes; }
 
@@ -17,5 +20,8 @@ public class BanishResult {
 
     public GameRoundObject.RoundStatus getStatus() { return status; }
     public void setStatus(GameRoundObject.RoundStatus status) { this.status = status; }
+
+    public Player getBanishedPlayer() { return banishedPlayer; }
+    public void setBanishedPlayer(Player banishedPlayer) { this.banishedPlayer = banishedPlayer; }
 
 }

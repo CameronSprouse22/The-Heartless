@@ -1,5 +1,6 @@
 package com.heartless.model;
 
+import com.heartless.model.enums.PlayerLifeStatusEnum;
 import com.heartless.model.enums.PlayerStatusEnum;
 import com.heartless.operation.item.ItemsInterface;
 
@@ -21,6 +22,7 @@ public class Player {
     private boolean isDead;
     private boolean isTraitor;
     private boolean hasBeenRevealed;
+    private PlayerLifeStatusEnum lifeStatus;
     private List<ItemsInterface> items;
     private Card card;
 
@@ -35,6 +37,7 @@ public class Player {
         this.isDead = false;
         this.isTraitor = false;
         this.hasBeenRevealed = false;
+        this.lifeStatus = PlayerLifeStatusEnum.ALIVE;
         this.items = new ArrayList<>();
         this.card = null;
     }
@@ -69,6 +72,8 @@ public class Player {
     public void setTraitor(boolean traitor) { isTraitor = traitor; }
     public boolean isHasBeenRevealed() { return hasBeenRevealed; }
     public void setHasBeenRevealed(boolean hasBeenRevealed) { this.hasBeenRevealed = hasBeenRevealed; }
+    public PlayerLifeStatusEnum getLifeStatus() { return lifeStatus; }
+    public void setLifeStatus(PlayerLifeStatusEnum lifeStatus) { this.lifeStatus = Objects.requireNonNull(lifeStatus); }
     public List<ItemsInterface> getItems() { return items; }
     public void setItems(List<ItemsInterface> items) { this.items = Objects.requireNonNull(items); }
     public Card getCard() { return card; }

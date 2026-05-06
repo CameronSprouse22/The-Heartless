@@ -1,5 +1,6 @@
 package com.heartless.model;
 
+import com.heartless.gamethread.BanishResult;
 import com.heartless.model.enums.MurderResultEnum;
 
 /**
@@ -11,8 +12,7 @@ public class RoundObject {
     private boolean murderRevealed;
     private boolean miniGamePlayed;
     private Player miniGameWinner;
-    private VoteResultObject banishVoteResult;
-    private Player playerBanished;
+    private BanishResult banishVoteResult;
     private VoteResultObject murderVoteResult;
     private MurderResultEnum murderResult;
     private Player murderedPlayer;
@@ -33,10 +33,13 @@ public class RoundObject {
     public void setMiniGamePlayed(boolean miniGamePlayed) { this.miniGamePlayed = miniGamePlayed; }
     public Player getMiniGameWinner() { return miniGameWinner; }
     public void setMiniGameWinner(Player miniGameWinner) { this.miniGameWinner = miniGameWinner; }
-    public VoteResultObject getBanishVoteResult() { return banishVoteResult; }
-    public void setBanishVoteResult(VoteResultObject banishVoteResult) { this.banishVoteResult = banishVoteResult; }
-    public Player getPlayerBanished() { return playerBanished; }
-    public void setPlayerBanished(Player playerBanished) { this.playerBanished = playerBanished; }
+    public BanishResult getBanishVoteResult() { return banishVoteResult; }
+    public void setBanishVoteResult(BanishResult banishVoteResult) { this.banishVoteResult = banishVoteResult; }
+    public Player getPlayerBanished() { return banishVoteResult != null ? banishVoteResult.getBanishedPlayer() : null; }
+    public void setPlayerBanished(Player playerBanished) {
+        if (banishVoteResult == null) banishVoteResult = new BanishResult();
+        banishVoteResult.setBanishedPlayer(playerBanished);
+    }
     public VoteResultObject getMurderVoteResult() { return murderVoteResult; }
     public void setMurderVoteResult(VoteResultObject murderVoteResult) { this.murderVoteResult = murderVoteResult; }
     public MurderResultEnum getMurderResult() { return murderResult; }

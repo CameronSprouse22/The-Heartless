@@ -3,6 +3,7 @@ package com.heartless.gamethread;
 import com.heartless.event.AfterLifeGameEvent;
 import com.heartless.event.EventObjectInterface;
 import com.heartless.event.RevealPlayerIdentityEvent;
+import com.heartless.event.TieBreakEvent;
 import com.heartless.event.BanishPreEvent;
 import com.heartless.event.BanishRevealEvent;
 import com.heartless.event.BanishVoteEvent;
@@ -83,15 +84,17 @@ public class GameThread {
             }
 
             
-            // eventList.add(new BanishPreEvent(gameObject));
-            // eventList.add(new BanishVoteEvent(gameObject));
-            // eventList.add(new BanishRevealEvent(gameObject));
+            eventList.add(new BanishPreEvent(gameObject));
+            eventList.add(new BanishVoteEvent(gameObject));
+            eventList.add(new BanishRevealEvent(gameObject));
+            eventList.add(new TieBreakEvent(gameObject));
+            eventList.add(new BanishRevealEvent(gameObject));
             eventList.add(new RevealPlayerIdentityEvent(gameObject));
-            eventList.add(new RevealPlayerIdentityEvent(gameObject));
+
 
             for (EventObjectInterface event : eventList) {
                 if (!event.checkStartConditions()) {
-                    log.trace("Skipping event {} (conditions not met) — gameId={}",
+                    log.trace("Skipping event {} (conditions not me t) — gameId={}",
                             event.getClass().getSimpleName(), gameObject.getGameId());
                     continue;
                 }

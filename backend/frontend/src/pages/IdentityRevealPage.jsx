@@ -62,7 +62,7 @@ function PendingRow() {
   );
 }
 
-function RevealedRow({ player, isNew }) {
+function RevealedRow({ player, isNew, isLast }) {
   // During shuffle phase, display the opposite role to start, then alternate
   const [displayTraitor, setDisplayTraitor] = useState(!player.isTraitor);
   const [flipKey, setFlipKey]               = useState(0);
@@ -72,15 +72,16 @@ function RevealedRow({ player, isNew }) {
   useEffect(() => {
     if (!isNew) return;
 
-    // 9 flips (odd): starts fast → slows down → settles on true identity
-    // Pre-compute durations: start at 80ms, multiply by 1.55 each flip
-    const TOTAL_FLIPS = 9;
-    const durations = [];
-    let d = 80;
-    for (let i = 0; i < TOTAL_FLIPS; i++) {
-      durations.push(Math.round(d));
-      d *= 1.55;
-    }
+    // Faithful: 5–8 flips, Traitor: 7–10 flips, random durations trending slower, capped at 1400ms
+    const [minFlips, maxFlips] = player.isTraitor ? [7, 10] : [5, 8];
+    const TOTAL_FLIPS = minFlips + Math.floor(Math.random() * (maxFlips - minFlips + 1));
+    const MAX_MS = 1400;
+    const durations = Array.from({ length: TOTAL_FLIPS }, (_, i) => {
+      const progress = i / (TOTAL_FLIPS - 1);          // 0 → 1
+      const minMs = 60  + Math.round(progress * 400);  // 60ms → 460ms
+      const maxMs = Math.min(150 + Math.round(progress * 900), MAX_MS); // 150ms → 1050ms (capped)
+      return minMs + Math.round(Math.random() * (maxMs - minMs));
+    });
 
     let flips = 0;
     let timeoutId;
@@ -115,7 +116,7 @@ function RevealedRow({ player, isNew }) {
       display: 'flex',
       alignItems: 'center',
       padding: '0.65rem 1rem',
-      borderBottom: `1px solid ${borderColor}`,
+      borderBottom: isLast ? 'none' : `1px solid ${borderColor}`,
       animation: (!shuffling && isNew) ? 'ir-line-in 0.45s cubic-bezier(0.22,1,0.36,1) forwards' : 'none',
       background: showTraitor
         ? 'linear-gradient(90deg, rgba(90,10,10,0.35) 0%, transparent 80%)'
@@ -129,10 +130,7 @@ function RevealedRow({ player, isNew }) {
         color: '#e0e0e0',
         fontWeight: '500',
         letterSpacing: '0.04em',
-        outline: isNew ? `1px solid ${borderColor}` : 'none',
-        borderRadius: '3px',
         padding: '0.1rem 0.3rem',
-        transition: 'outline 0.3s ease',
       }}>
         {player.playerName}
       </span>
@@ -151,7 +149,7 @@ function RevealedRow({ player, isNew }) {
           display: 'inline-block',
           visibility: shuffling ? 'hidden' : 'visible',
           animationName: !shuffling && isNew ? 'ir-role-fade' : 'none',
-          animationDuration: '0.7s',
+          animationDuration: '0.3s',
           animationFillMode: 'both',
           animationTimingFunction: 'ease',
         }}
@@ -258,19 +256,8 @@ function IdentityRevealPage({ onClose }) {
               borderRadius: '2px',
             }} />
           </div>
-          <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.3rem' }}>
-            {revealedPlayers.length} of {totalPlayers} revealed
-            {revealComplete && <span style={{ color: '#aaa', marginLeft: '0.5rem' }}>· Complete</span>}
-          </p>
         </div>
 
-        {/* Tally */}
-        {revealedPlayers.length > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', fontSize: '0.85rem' }}>
-            <span style={{ color: '#ff6b6b' }}>🗡️ {traitorCount} Traitor{traitorCount !== 1 ? 's' : ''}</span>
-            <span style={{ color: '#82b1ff' }}>🛡️ {faithfulCount} Faithful</span>
-          </div>
-        )}
       </div>
 
       {/* Player list */}
@@ -285,6 +272,7 @@ function IdentityRevealPage({ onClose }) {
             key={player.playerId || idx}
             player={player}
             isNew={newIndicesRef.current.has(idx)}
+            isLast={idx === revealedPlayers.length - 1 && pendingCount === 0}
           />
         ))}
         {Array.from({ length: pendingCount }).map((_, i) => (
