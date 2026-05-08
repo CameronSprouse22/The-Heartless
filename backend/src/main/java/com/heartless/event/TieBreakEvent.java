@@ -17,8 +17,14 @@ public class TieBreakEvent implements EventObjectInterface {
 
     private final GameObject game;
     /** IDs of the players who tied — the only valid banish targets for this vote. */
-    private final List<String> tiedCandidateIds;
+    private List<String> tiedCandidateIds;
     private Long startTime = null;
+
+    /** Used by GameThread when tie candidates are determined at runtime (stored on game object). */
+    public TieBreakEvent(GameObject game) {
+        this.game = game;
+        this.tiedCandidateIds = new ArrayList<>();
+    }
 
     public TieBreakEvent(GameObject game, List<String> tiedCandidateIds) {
         this.game = game;
@@ -27,6 +33,15 @@ public class TieBreakEvent implements EventObjectInterface {
 
     @Override
     public boolean checkStartConditions() {
+        // Read candidates from the game object at runtime so dynamic ties are captured
+        List<String> gameCandidates = game.getTieBreakCandidateIds();
+        if (!gameCandidates.isEmpty()) {
+            this.tiedCandidateIds = new ArrayList<>(gameCandidates);
+        }
+        // Skip this event if there are fewer than 2 tied candidates
+        if (tiedCandidateIds.size() < 2) {
+            return false;
+        }
         startTime = System.currentTimeMillis();
         return true;
     }

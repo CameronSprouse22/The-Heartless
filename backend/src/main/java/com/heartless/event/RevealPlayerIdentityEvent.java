@@ -5,6 +5,7 @@ import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
 import com.heartless.model.Player;
 import com.heartless.model.UserSelectionsState;
+import com.heartless.model.enums.PlayerLifeStatusEnum;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +28,9 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
     }
 
     @Override
+    public boolean isShowToDeadPlayers() { return true; }
+
+    @Override
     public boolean checkStartConditions() {
         startTime = System.currentTimeMillis();
         return true;
@@ -34,6 +38,11 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     @Override
     public void onStart() {
+        // Transition any MARKED_FOR_BANISHMENT player to BANISHED now that the banish reveal is over.
+        // isDead() returns true for BANISHED, so buildGameState() will route them to AfterLife.
+        game.getPlayerList().stream()
+                .filter(p -> p.getLifeStatus() == PlayerLifeStatusEnum.MARKED_FOR_BANISHMENT)
+                .forEach(p -> p.setLifeStatus(PlayerLifeStatusEnum.BANISHED));
     }
 
     @Override

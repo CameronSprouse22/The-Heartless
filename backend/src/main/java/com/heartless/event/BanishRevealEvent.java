@@ -8,6 +8,7 @@ import com.heartless.model.RoundObject;
 import com.heartless.model.UserSelectionsState;
 import com.heartless.model.Vote;
 import com.heartless.model.enums.PlayerStatusEnum;
+import com.heartless.model.enums.PlayerLifeStatusEnum;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +26,9 @@ public class BanishRevealEvent implements EventObjectInterface {
     public BanishRevealEvent(GameObject game) {
         this.game = game;
     }
+
+    @Override
+    public boolean isShowToDeadPlayers() { return true; }
 
     @Override
     public boolean checkStartConditions() {
@@ -57,7 +61,7 @@ public class BanishRevealEvent implements EventObjectInterface {
                             .filter(p -> p.getId().equals(e.getKey()))
                             .findFirst()
                             .ifPresent(winner -> {
-                                winner.setDead(true);
+                                winner.setLifeStatus(PlayerLifeStatusEnum.MARKED_FOR_BANISHMENT);
                                 RoundObject round = game.getCurrentRound();
                                 if (round != null) round.setPlayerBanished(winner);
                             }));

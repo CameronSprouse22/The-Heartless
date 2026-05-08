@@ -19,7 +19,6 @@ public class Player {
     private String email;
     private String phone;
     private PlayerStatusEnum status;
-    private boolean isDead;
     private boolean isTraitor;
     private boolean hasBeenRevealed;
     private PlayerLifeStatusEnum lifeStatus;
@@ -34,7 +33,6 @@ public class Player {
         this.email = email;
         this.phone = phone;
         this.status = PlayerStatusEnum.PENDING;
-        this.isDead = false;
         this.isTraitor = false;
         this.hasBeenRevealed = false;
         this.lifeStatus = PlayerLifeStatusEnum.ALIVE;
@@ -66,8 +64,10 @@ public class Player {
     public void setPhone(String phone) { this.phone = phone; }
     public PlayerStatusEnum getStatus() { return status; }
     public void setStatus(PlayerStatusEnum status) { this.status = Objects.requireNonNull(status); }
-    public boolean isDead() { return isDead; }
-    public void setDead(boolean dead) { isDead = dead; }
+    /** Derived from lifeStatus — true for MURDERED, BANISHED, PLAYER_BOOTED, PLAYER_LEFT_GAME. */
+    public boolean isDead() { return lifeStatus.isDead(); }
+    /** Compatibility shim: true sets MURDERED, false sets ALIVE. Prefer setLifeStatus() for precision. */
+    public void setDead(boolean dead) { lifeStatus = dead ? PlayerLifeStatusEnum.MURDERED : PlayerLifeStatusEnum.ALIVE; }
     public boolean isTraitor() { return isTraitor; }
     public void setTraitor(boolean traitor) { isTraitor = traitor; }
     public boolean isHasBeenRevealed() { return hasBeenRevealed; }

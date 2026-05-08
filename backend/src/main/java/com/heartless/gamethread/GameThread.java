@@ -31,6 +31,7 @@ public class GameThread {
     private List<EventObjectInterface> eventList;
     private EventObjectInterface currentEvent;
     private String statusString = "";
+    private final java.util.concurrent.atomic.AtomicBoolean gameStarted = new java.util.concurrent.atomic.AtomicBoolean(false);
     private PushNotificationService pushNotificationService;
     private SimpMessagingTemplate messagingTemplate;
     private final java.util.ArrayList<GameRoundObject> roundObjects = new java.util.ArrayList<>();
@@ -58,7 +59,7 @@ public class GameThread {
      */
     public void gameInit() {
         log.info("Game initialising — gameId={}", gameObject.getGameId());
-        this.statusString = "Lobby";
+        this.statusString = "Round " + gameObject.getRound();
         gameObject.setCurrentTask("Waiting for players");
         Thread gameThread = new Thread(this::gameStart, "game-thread-" + gameObject.getGameId());
         gameThread.setDaemon(true);
@@ -72,7 +73,10 @@ public class GameThread {
      * Main game loop: iterate rounds executing events until criteria met.
      */
     public void gameStart() {
-
+        if (!gameStarted.compareAndSet(false, true)) {
+            log.debug("gameStart() already running — skipping — gameId={}", gameObject.getGameId());
+            return;
+        }
         log.info("Game starting — gameId={}", gameObject.getGameId());
         this.statusString = "Round " + gameObject.getRound();
         gameObject.setCurrentTask("In progress");
@@ -114,7 +118,9 @@ public class GameThread {
                 }
             }
 
-            gameObject.startNewRound();
+            if (gameCriteriaObject.checkGameConditions(gameObject)) {
+                gameObject.startNewRound();
+            }
 
         }
 

@@ -5,6 +5,7 @@ import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
 import com.heartless.model.UserSelectionsState;
+import com.heartless.model.enums.PlayerLifeStatusEnum;
 
 import java.util.ArrayList;
 
@@ -18,9 +19,20 @@ public class MurderRevealEvent implements EventObjectInterface {
     }
 
     @Override
+    public boolean isShowToDeadPlayers() { return true; }
+
+    @Override
     public boolean checkStartConditions() {
         startTime = System.currentTimeMillis();
         return true;
+    }
+
+    @Override
+    public void onStart() {
+        // Transition any MARKED_FOR_MURDER player to MURDERED now that the reveal begins.
+        game.getPlayerList().stream()
+                .filter(p -> p.getLifeStatus() == PlayerLifeStatusEnum.MARKED_FOR_MURDER)
+                .forEach(p -> p.setLifeStatus(PlayerLifeStatusEnum.MURDERED));
     }
 
     @Override

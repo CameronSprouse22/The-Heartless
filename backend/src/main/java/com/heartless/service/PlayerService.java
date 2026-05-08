@@ -114,6 +114,7 @@ public class PlayerService {
         map.put("name", player.getName());
         map.put("status", player.getStatus().name());
         map.put("isDead", player.isDead());
+        map.put("lifeStatus", player.getLifeStatus().name());
         map.put("isTraitor", player.isTraitor());
         Card card = player.getCard();
         if (card != null) {

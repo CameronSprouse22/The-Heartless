@@ -144,6 +144,7 @@ public class GameService {
                     pm.put("name", p.getName());
                     pm.put("status", p.getStatus().name());
                     pm.put("isDead", p.isDead());
+                    pm.put("lifeStatus", p.getLifeStatus().name());
                     return pm;
                 })
                 .toList();
@@ -252,6 +253,7 @@ public class GameService {
         result.put("playerName", player.getName());
         result.put("isTraitor", player.isTraitor());
         result.put("isDead", player.isDead());
+        result.put("lifeStatus", player.getLifeStatus().name());
         return result;
     }
 

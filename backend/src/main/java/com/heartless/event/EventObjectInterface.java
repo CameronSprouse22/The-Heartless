@@ -80,4 +80,10 @@ public interface EventObjectInterface {
      * Returns null for non-reveal events.
      */
     default java.util.List<EventAction> getEvents() { return null; }
+
+    /**
+     * Returns true if this event should also be shown to dead players.
+     * Default is false — override in reveal events visible to all players.
+     */
+    default boolean isShowToDeadPlayers() { return false; }
 }
