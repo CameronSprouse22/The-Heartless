@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class TieBreakEvent implements EventObjectInterface {
+public class BanishSecondVoteEvent implements EventObjectInterface {
 
     private final GameObject game;
     /** IDs of the players who tied — the only valid banish targets for this vote. */
@@ -21,12 +21,12 @@ public class TieBreakEvent implements EventObjectInterface {
     private Long startTime = null;
 
     /** Used by GameThread when tie candidates are determined at runtime (stored on game object). */
-    public TieBreakEvent(GameObject game) {
+    public BanishSecondVoteEvent(GameObject game) {
         this.game = game;
         this.tiedCandidateIds = new ArrayList<>();
     }
 
-    public TieBreakEvent(GameObject game, List<String> tiedCandidateIds) {
+    public BanishSecondVoteEvent(GameObject game, List<String> tiedCandidateIds) {
         this.game = game;
         this.tiedCandidateIds = tiedCandidateIds != null ? new ArrayList<>(tiedCandidateIds) : new ArrayList<>();
     }
@@ -119,7 +119,7 @@ public class TieBreakEvent implements EventObjectInterface {
         List<Player> tieCandidates = tiedCandidateIds.isEmpty() ? alivePlayers
                 : alivePlayers.stream().filter(p -> tiedCandidateIds.contains(p.getId())).toList();
 
-        List<Vote> voteHistory = game.getBanishVotes();
+        List<Vote> voteHistory = game.getBanishSecondVotes();
 
         for (Player player : alivePlayers) {
             UserSelectionsState state = game.getSelectionState(player.getId());
@@ -161,11 +161,8 @@ public class TieBreakEvent implements EventObjectInterface {
             }
 
             if (target != null) {
-                game.addBanishVote(new Vote(player, target));
+                game.addBanishSecondVote(new Vote(player, target));
             }
         }
-
-        // Clear the restricted candidate pool now that the tiebreak is resolved
-        game.clearTieBreakCandidateIds();
     }
 }

@@ -3,10 +3,11 @@ package com.heartless.gamethread;
 import com.heartless.event.AfterLifeGameEvent;
 import com.heartless.event.EventObjectInterface;
 import com.heartless.event.RevealPlayerIdentityEvent;
-import com.heartless.event.TieBreakEvent;
 import com.heartless.event.BanishPreEvent;
 import com.heartless.event.BanishRevealEvent;
 import com.heartless.event.BanishVoteEvent;
+import com.heartless.event.BanishSecondRevealEvent;
+import com.heartless.event.BanishSecondVoteEvent;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
 import com.heartless.push.PushNotificationService;
@@ -91,8 +92,8 @@ public class GameThread {
             eventList.add(new BanishPreEvent(gameObject));
             eventList.add(new BanishVoteEvent(gameObject));
             eventList.add(new BanishRevealEvent(gameObject));
-            eventList.add(new TieBreakEvent(gameObject));
-            eventList.add(new BanishRevealEvent(gameObject));
+            eventList.add(new BanishSecondVoteEvent(gameObject));
+            eventList.add(new BanishSecondRevealEvent(gameObject));
             eventList.add(new RevealPlayerIdentityEvent(gameObject));
 
 

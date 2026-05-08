@@ -16,14 +16,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class BanishRevealEvent implements EventObjectInterface {
+public class BanishSecondRevealEvent implements EventObjectInterface {
 
     private final GameObject game;
     private Long startTime = null;
     /** Snapshot of each player's text input from the vote phase, captured before onStart() resets states. */
     private Map<String, String> voteTextSnapshot = new HashMap<>();
 
-    public BanishRevealEvent(GameObject game) {
+    public BanishSecondRevealEvent(GameObject game) {
         this.game = game;
     }
 
@@ -32,6 +32,9 @@ public class BanishRevealEvent implements EventObjectInterface {
 
     @Override
     public boolean checkStartConditions() {
+        if (game.getTieBreakCandidateIds() == null || game.getTieBreakCandidateIds().isEmpty()) {
+            return false;
+        }
         startTime = System.currentTimeMillis();
         return true;
     }
@@ -51,7 +54,7 @@ public class BanishRevealEvent implements EventObjectInterface {
                 .toList());
 
         // Apply banishment: the player receiving the most votes is banished
-        List<Vote> votes = game.getBanishVotes();
+        List<Vote> votes = game.getBanishSecondVotes();
         if (!votes.isEmpty()) {
             Map<String, Long> tally = votes.stream()
                     .collect(Collectors.groupingBy(v -> v.getReceivingPlayer().getId(), Collectors.counting()));
@@ -63,8 +66,17 @@ public class BanishRevealEvent implements EventObjectInterface {
                     .toList();
             
             if (tiedPlayerIds.size() > 1) {
-                // It's a tie, no banishment yet. Register for tie-break.
-                game.setTieBreakCandidateIds(tiedPlayerIds);
+                // It's STILL a tie! In this case, we could randomly pick or do something else. 
+                // For now, let's randomly banish one of the tied players to break deadlock.
+                String winnerId = tiedPlayerIds.get(new java.util.Random().nextInt(tiedPlayerIds.size()));
+                game.getPlayerList().stream()
+                        .filter(p -> p.getId().equals(winnerId))
+                        .findFirst()
+                        .ifPresent(winner -> {
+                            winner.setLifeStatus(PlayerLifeStatusEnum.MARKED_FOR_BANISHMENT);
+                            RoundObject round = game.getCurrentRound();
+                            if (round != null) round.setPlayerBanished(winner);
+                        });
             } else {
                 // No tie, process the winner
                 String winnerId = tiedPlayerIds.get(0);
@@ -137,7 +149,7 @@ public class BanishRevealEvent implements EventObjectInterface {
     @Override
     public List<EventAction> getEvents() {
         if (startTime == null) return null;
-        List<Vote> votes = game.getBanishVotes();
+        List<Vote> votes = game.getBanishSecondVotes();
         if (votes.isEmpty()) return List.of();
         List<EventAction> actions = new ArrayList<>();
         long intervalMs = 5000L;

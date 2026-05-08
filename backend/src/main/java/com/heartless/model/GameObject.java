@@ -33,6 +33,7 @@ public class GameObject {
     private MenuControl menuControl;
     private final Map<String, EventMessageDismissalState> initialMessageDismissalMap;
     private final List<Vote> banishVotes;
+    private final List<Vote> banishSecondVotes;
     private Map<String, UserSelectionsState> selectionStateMap;
     /** IDs of the players who tied in the most recent banish vote; empty when no tiebreak is active. */
     private List<String> tieBreakCandidateIds = new ArrayList<>();
@@ -55,6 +56,7 @@ public class GameObject {
         this.selectionStateMap = new HashMap<>();
         this.initialMessageDismissalMap = new HashMap<>();
         this.banishVotes = new ArrayList<>();
+        this.banishSecondVotes = new ArrayList<>();
         this.tieBreakCandidateIds = new ArrayList<>();
     }
 
@@ -108,6 +110,8 @@ public class GameObject {
     public RoundObject startNewRound() {
         incrementRound();
         banishVotes.clear();
+        banishSecondVotes.clear();
+        tieBreakCandidateIds.clear();
         selectionStateMap = new HashMap<>();
         RoundObject newRound = new RoundObject(this.round);
         roundList.add(newRound);
@@ -147,6 +151,10 @@ public class GameObject {
     public synchronized void addBanishVote(Vote vote) { banishVotes.add(vote); }
     public synchronized List<Vote> getBanishVotes() { return new ArrayList<>(banishVotes); }
     public synchronized void clearBanishVotes() { banishVotes.clear(); }
+
+    public synchronized void addBanishSecondVote(Vote vote) { banishSecondVotes.add(vote); }
+    public synchronized List<Vote> getBanishSecondVotes() { return new ArrayList<>(banishSecondVotes); }
+    public synchronized void clearBanishSecondVotes() { banishSecondVotes.clear(); }
 
     public List<String> getTieBreakCandidateIds() { return tieBreakCandidateIds; }
     public void setTieBreakCandidateIds(List<String> ids) { this.tieBreakCandidateIds = ids != null ? ids : new ArrayList<>(); }
