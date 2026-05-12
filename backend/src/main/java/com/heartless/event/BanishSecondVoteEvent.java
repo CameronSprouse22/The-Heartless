@@ -58,12 +58,15 @@ public class BanishSecondVoteEvent implements EventObjectInterface {
 
     @Override
     public boolean endConditonsMeet(GameObject gameObject) {
-        return gameObject.getPlayerList().stream()
+        List<String> activePlayerIds = gameObject.getPlayerList().stream()
                 .filter(p -> !p.isDead() && p.getStatus() == PlayerStatusEnum.ACTIVE)
-                .allMatch(p -> {
-                    UserSelectionsState state = gameObject.getSelectionState(p.getId());
-                    return state != null && state.isSubmitPressed();
-                });
+                .map(Player::getId)
+                .toList();
+        if (activePlayerIds.isEmpty()) return true;
+        List<String> votedPlayerIds = gameObject.getBanishSecondVotes().stream()
+                .map(v -> v.getCastingPlayer().getId())
+                .toList();
+        return votedPlayerIds.containsAll(activePlayerIds);
     }
 
     @Override
@@ -75,7 +78,6 @@ public class BanishSecondVoteEvent implements EventObjectInterface {
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setBanishVoteEnabled(true);
-        mc.setAllChatEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 

@@ -2,6 +2,90 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getRevealedVotes, closeReveal } from '../services/api';
 
+// --- Slot Machine Component ---
+function SlotMachine({ candidates, pickedName, onDone }) {
+  const [displayName, setDisplayName] = useState(candidates[0] || '');
+  const [phase, setPhase] = useState('spinning'); // 'spinning' | 'slowing' | 'done'
+  const frameRef = useRef(null);
+  const startTimeRef = useRef(Date.now());
+  const SPIN_DURATION = 2800;  // fast spin ms
+  const SLOW_DURATION = 1800;  // slow-down ms
+  const TOTAL = SPIN_DURATION + SLOW_DURATION;
+
+  useEffect(() => {
+    let idx = 0;
+    let delay = 80;
+
+    const tick = () => {
+      const elapsed = Date.now() - startTimeRef.current;
+      if (elapsed < SPIN_DURATION) {
+        // Fast cycling through all candidates
+        idx = (idx + 1) % candidates.length;
+        setDisplayName(candidates[idx]);
+        setPhase('spinning');
+        delay = 80;
+        frameRef.current = setTimeout(tick, delay);
+      } else if (elapsed < TOTAL) {
+        // Slowing down — interpolate interval from 80ms → 400ms
+        const progress = (elapsed - SPIN_DURATION) / SLOW_DURATION;
+        delay = 80 + progress * 320;
+        idx = (idx + 1) % candidates.length;
+        setDisplayName(candidates[idx]);
+        setPhase('slowing');
+        frameRef.current = setTimeout(tick, delay);
+      } else {
+        // Land on the picked name
+        setDisplayName(pickedName);
+        setPhase('done');
+        setTimeout(() => onDone && onDone(), 1200);
+      }
+    };
+
+    frameRef.current = setTimeout(tick, delay);
+    return () => clearTimeout(frameRef.current);
+  }, []);
+
+  const glow = phase === 'done'
+    ? '0 0 24px 8px #ff5252, 0 0 4px 2px #ff1744'
+    : phase === 'slowing'
+      ? '0 0 10px 3px #ef9a9a'
+      : 'none';
+
+  return (
+    <div style={{ textAlign: 'center', margin: '2rem 0' }}>
+      <p style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '1rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        {phase === 'done' ? '\u2620 Banished by fate \u2620' : 'Drawing lots\u2026'}
+      </p>
+      <div style={{
+        display: 'inline-block',
+        background: '#1a1a1a',
+        border: `2px solid ${phase === 'done' ? '#f44336' : '#555'}`,
+        borderRadius: '12px',
+        padding: '1.2rem 3rem',
+        minWidth: '220px',
+        transition: 'border-color 0.4s',
+        boxShadow: glow,
+      }}>
+        <span style={{
+          display: 'block',
+          fontSize: '2rem',
+          fontWeight: 'bold',
+          color: phase === 'done' ? '#f44336' : '#eee',
+          transition: phase === 'done' ? 'color 0.4s' : 'none',
+          letterSpacing: '0.04em',
+        }}>
+          {displayName}
+        </span>
+      </div>
+      {phase === 'done' && (
+        <p style={{ color: '#f44336', marginTop: '1rem', fontSize: '1rem', fontWeight: 'bold', animation: 'fadeSlideIn 0.5s ease' }}>
+          has been banished!
+        </p>
+      )}
+    </div>
+  );
+}
+
 function BanishRevealPage({ onClose }) {
   const { gameCode, playerName } = useParams();
   const navigate = useNavigate();
@@ -10,8 +94,13 @@ function BanishRevealPage({ onClose }) {
   const [revealedVotes, setRevealedVotes] = useState([]);
   const [totalVotes, setTotalVotes] = useState(0);
   const [revealComplete, setRevealComplete] = useState(false);
+  const [randomPickedName, setRandomPickedName] = useState(null);
+  const [randomPickCandidates, setRandomPickCandidates] = useState([]);
+  const [slotDone, setSlotDone] = useState(false);
   const [error, setError] = useState('');
   const prevCountRef = useRef(0);
+
+  const canClose = revealComplete && (randomPickedName == null || slotDone);
 
   // Poll every 2 seconds until all votes are revealed
   useEffect(() => {
@@ -23,6 +112,8 @@ function BanishRevealPage({ onClose }) {
         setRevealedVotes(data.revealedVotes || []);
         setTotalVotes(data.totalVotes || 0);
         setRevealComplete(data.revealComplete || false);
+        if (data.randomPickedName) setRandomPickedName(data.randomPickedName);
+        if (data.randomPickCandidates) setRandomPickCandidates(data.randomPickCandidates);
         prevCountRef.current = (data.revealedVotes || []).length;
       } catch (err) {
         setError(err.message || 'Failed to load reveal data');
@@ -143,7 +234,7 @@ function BanishRevealPage({ onClose }) {
 
       <div style={{ textAlign: 'center', marginTop: '2rem' }}>
         <button
-          disabled={!revealComplete}
+          disabled={!canClose}
           onClick={async () => {
             try { await closeReveal(gameCode, playerCode); } catch { /* ignore */ }
             if (onClose) {
@@ -154,17 +245,48 @@ function BanishRevealPage({ onClose }) {
           }}
           style={{
             padding: '0.6rem 2rem',
-            background: revealComplete ? '#607d8b' : '#444',
-            color: revealComplete ? 'white' : '#888',
+            background: canClose ? '#607d8b' : '#444',
+            color: canClose ? 'white' : '#888',
             border: 'none',
             borderRadius: '6px',
             fontSize: '1rem',
-            cursor: revealComplete ? 'pointer' : 'not-allowed',
+            cursor: canClose ? 'pointer' : 'not-allowed',
           }}
         >
           Close
         </button>
       </div>
+
+      {revealComplete && randomPickedName && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.75)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          animation: 'fadeSlideIn 0.3s ease',
+        }}>
+          <div style={{
+            background: '#1e1e1e',
+            border: '1px solid #444',
+            borderRadius: '16px',
+            padding: '2.5rem 3rem',
+            minWidth: '320px',
+            textAlign: 'center',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.7)',
+          }}>
+            <h2 style={{ margin: '0 0 0.25rem', color: '#eee', fontSize: '1.3rem' }}>Tiebreaker!</h2>
+            <p style={{ margin: '0 0 1.5rem', color: '#888', fontSize: '0.9rem' }}>The vote is tied — fate decides.</p>
+            <SlotMachine
+              candidates={randomPickCandidates.length >= 2 ? randomPickCandidates : [randomPickedName]}
+              pickedName={randomPickedName}
+              onDone={() => setSlotDone(true)}
+            />
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes fadeSlideIn {

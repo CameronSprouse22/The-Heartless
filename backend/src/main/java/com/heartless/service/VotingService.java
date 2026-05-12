@@ -21,8 +21,10 @@ public class VotingService {
     private final GameStore gameStore;
     private final SimpMessagingTemplate messagingTemplate;
 
-    // gameCode -> list of banish votes for current round
+    // gameCode -> list of banish votes for current round (first vote)
     private final ConcurrentHashMap<String, List<Vote>> banishVotes = new ConcurrentHashMap<>();
+    // gameCode -> list of banish votes for tiebreak (second vote)
+    private final ConcurrentHashMap<String, List<Vote>> banishSecondVotes = new ConcurrentHashMap<>();
     // gameCode -> list of murder votes for current round
     private final ConcurrentHashMap<String, List<Map<String, Object>>> murderVotes = new ConcurrentHashMap<>();
 
@@ -41,8 +43,9 @@ public class VotingService {
             throw new IllegalStateException("Dead players cannot vote");
         }
 
+        boolean isTieBreak = !game.getTieBreakCandidateIds().isEmpty();
         List<Map<String, Object>> candidates = buildCandidateList(game, playerId);
-        String existingVote = findExistingVote(gameCode, playerId);
+        String existingVote = findExistingVote(gameCode, playerId, isTieBreak);
 
         Map<String, Object> result = new HashMap<>();
         result.put("voteType", "BANISH");
@@ -66,8 +69,10 @@ public class VotingService {
                 .toList();
     }
 
-    private String findExistingVote(String gameCode, String playerId) {
-        List<Vote> votes = banishVotes.getOrDefault(gameCode, List.of());
+    private String findExistingVote(String gameCode, String playerId, boolean isTieBreak) {
+        List<Vote> votes = isTieBreak
+                ? banishSecondVotes.getOrDefault(gameCode, List.of())
+                : banishVotes.getOrDefault(gameCode, List.of());
         return votes.stream()
                 .filter(v -> v.getCastingPlayer().getId().equals(playerId))
                 .findFirst()
@@ -97,17 +102,30 @@ public class VotingService {
             throw new IllegalStateException("Voting period has ended");
         }
 
-        List<Vote> votes = banishVotes.computeIfAbsent(gameCode, k -> Collections.synchronizedList(new ArrayList<>()));
-        // Check both the service-level list and the game-level list to catch races with resolveEvent
-        boolean alreadyVoted = votes.stream().anyMatch(v -> v.getCastingPlayer().getId().equals(voterId))
-                || game.getBanishVotes().stream().anyMatch(v -> v.getCastingPlayer().getId().equals(voterId));
-        if (alreadyVoted) {
-            throw new IllegalStateException("Already voted this round");
+        boolean isTieBreak = !game.getTieBreakCandidateIds().isEmpty();
+        if (isTieBreak) {
+            // Second (tiebreak) vote — use separate pool so first-round votes don't block it
+            List<Vote> secondVotes = banishSecondVotes.computeIfAbsent(gameCode, k -> Collections.synchronizedList(new ArrayList<>()));
+            boolean alreadyVoted = secondVotes.stream().anyMatch(v -> v.getCastingPlayer().getId().equals(voterId))
+                    || game.getBanishSecondVotes().stream().anyMatch(v -> v.getCastingPlayer().getId().equals(voterId));
+            if (alreadyVoted) {
+                throw new IllegalStateException("Already voted this round");
+            }
+            Vote vote = new Vote(voter, target);
+            secondVotes.add(vote);
+            game.addBanishSecondVote(vote);
+        } else {
+            List<Vote> votes = banishVotes.computeIfAbsent(gameCode, k -> Collections.synchronizedList(new ArrayList<>()));
+            // Check both the service-level list and the game-level list to catch races with resolveEvent
+            boolean alreadyVoted = votes.stream().anyMatch(v -> v.getCastingPlayer().getId().equals(voterId))
+                    || game.getBanishVotes().stream().anyMatch(v -> v.getCastingPlayer().getId().equals(voterId));
+            if (alreadyVoted) {
+                throw new IllegalStateException("Already voted this round");
+            }
+            Vote vote = new Vote(voter, target);
+            votes.add(vote);
+            game.addBanishVote(vote);
         }
-
-        Vote vote = new Vote(voter, target);
-        votes.add(vote);
-        game.addBanishVote(vote);
 
         // Track submit in per-player selection state
         UserSelectionsState selState = game.getSelectionState(voterId);
@@ -263,6 +281,7 @@ public class VotingService {
 
     public void clearVotes(String gameCode) {
         banishVotes.remove(gameCode);
+        banishSecondVotes.remove(gameCode);
         murderVotes.remove(gameCode);
     }
 

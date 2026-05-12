@@ -281,7 +281,15 @@ public class GameController {
             Map<String, Object> result = new HashMap<>();
             result.put("revealedVotes", revealed);
             result.put("totalVotes", actions.size());
-            result.put("revealComplete", revealed.size() == actions.size());
+            boolean complete = revealed.size() == actions.size();
+            result.put("revealComplete", complete);
+            if (complete) {
+                String randomPickedName = thread.getCurrentEvent().getRandomPickedName();
+                if (randomPickedName != null) {
+                    result.put("randomPickedName", randomPickedName);
+                    result.put("randomPickCandidates", thread.getCurrentEvent().getRandomPickCandidates());
+                }
+            }
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));

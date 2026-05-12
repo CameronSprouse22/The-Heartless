@@ -82,6 +82,18 @@ public interface EventObjectInterface {
     default java.util.List<EventAction> getEvents() { return null; }
 
     /**
+     * When a vote results in a random tiebreak pick, returns the name of the randomly chosen player.
+     * Returns null when no random pick occurred.
+     */
+    default String getRandomPickedName() { return null; }
+
+    /**
+     * The candidate names that were eligible for the random tiebreak pick.
+     * Returns an empty list when no random pick occurred.
+     */
+    default java.util.List<String> getRandomPickCandidates() { return java.util.List.of(); }
+
+    /**
      * Returns true if this event should also be shown to dead players.
      * Default is false — override in reveal events visible to all players.
      */

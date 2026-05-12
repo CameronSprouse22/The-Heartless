@@ -13,7 +13,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class BanishVoteEvent implements EventObjectInterface {
+
+    private static final Logger log = LoggerFactory.getLogger(BanishVoteEvent.class);
 
     private final GameObject game;
     private Long startTime = null;
@@ -30,12 +35,32 @@ public class BanishVoteEvent implements EventObjectInterface {
 
     @Override
     public boolean endConditonsMeet(GameObject gameObject) {
-        return gameObject.getPlayerList().stream()
+        List<String> activePlayerIds = gameObject.getPlayerList().stream()
                 .filter(p -> !p.isDead() && p.getStatus() == PlayerStatusEnum.ACTIVE)
-                .allMatch(p -> {
-                    UserSelectionsState state = gameObject.getSelectionState(p.getId());
-                    return state != null && state.isSubmitPressed();
-                });
+                .map(Player::getId)
+                .toList();
+
+        List<String> votedPlayerIds = gameObject.getBanishVotes().stream()
+                .map(v -> v.getCastingPlayer().getId())
+                .toList();
+
+        log.debug("BanishVoteEvent.endConditonsMeet — activePlayers={} ({}) votes={} ({})",
+                activePlayerIds.size(), activePlayerIds,
+                votedPlayerIds.size(), votedPlayerIds);
+
+        // Require at least one active player and at least one vote — never complete with zero votes
+        if (activePlayerIds.isEmpty()) {
+            log.warn("BanishVoteEvent.endConditonsMeet — activePlayerIds EMPTY, returning false (no active players to vote)");
+            return false;
+        }
+        if (votedPlayerIds.isEmpty()) {
+            return false;
+        }
+        boolean allVoted = votedPlayerIds.containsAll(activePlayerIds);
+        if (allVoted) {
+            log.info("BanishVoteEvent.endConditonsMeet — all {} active players have voted", activePlayerIds.size());
+        }
+        return allVoted;
     }
 
     @Override

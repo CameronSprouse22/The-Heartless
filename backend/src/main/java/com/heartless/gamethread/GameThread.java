@@ -87,6 +87,16 @@ public class GameThread {
             if (votingService != null) {
                 votingService.clearVotes(gameObject.getGameIdCode());
             }
+            // Explicitly reset all banish-round state, regardless of whether startNewRound() was called
+            gameObject.clearBanishVotes();
+            gameObject.clearBanishSecondVotes();
+            gameObject.clearTieBreakCandidateIds();
+            List<String> activeAtRoundStart = gameObject.getPlayerList().stream()
+                    .filter(p -> !p.isDead() && p.getStatus() == com.heartless.model.enums.PlayerStatusEnum.ACTIVE)
+                    .map(p -> p.getId()).toList();
+            gameObject.initSelectionStates(activeAtRoundStart);
+            log.info("=== Round {} starting — activePlayers={} ({}) ===",
+                    gameObject.getRound(), activeAtRoundStart.size(), activeAtRoundStart);
 
             
             eventList.add(new BanishPreEvent(gameObject));
@@ -103,6 +113,7 @@ public class GameThread {
                             event.getClass().getSimpleName(), gameObject.getGameId());
                     continue;
                 }
+
                 currentEvent = event;
                 log.debug("Starting event {} — gameId={}", event.getClass().getSimpleName(), gameObject.getGameId());
                 boolean completed = runCurrentEvent();
@@ -166,6 +177,12 @@ public class GameThread {
                 pushNotificationService.notifyGame(
                         gameObject.getGameIdCode(), notif, "", "eventStarted");
             }
+        }
+        // Detect if end condition is already met before first poll — this should NEVER be true
+        // for vote events; if it is, it means stale state leaked in
+        if (currentEvent.endConditonsMeet(gameObject)) {
+            log.warn("*** EVENT {} endConditonsMeet=true IMMEDIATELY after onStart() — round={} gameId={} ***",
+                    currentEvent.getClass().getSimpleName(), gameObject.getRound(), gameObject.getGameId());
         }
         // Loop until end condition is satisfied or time runs out
         boolean timedOut = false;

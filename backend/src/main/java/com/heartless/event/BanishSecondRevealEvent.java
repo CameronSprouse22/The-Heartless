@@ -22,6 +22,9 @@ public class BanishSecondRevealEvent implements EventObjectInterface {
     private Long startTime = null;
     /** Snapshot of each player's text input from the vote phase, captured before onStart() resets states. */
     private Map<String, String> voteTextSnapshot = new HashMap<>();
+    /** Set when the second vote is also a tie and a player is chosen at random. */
+    private String randomPickedName = null;
+    private List<String> randomPickCandidates = List.of();
 
     public BanishSecondRevealEvent(GameObject game) {
         this.game = game;
@@ -66,13 +69,21 @@ public class BanishSecondRevealEvent implements EventObjectInterface {
                     .toList();
             
             if (tiedPlayerIds.size() > 1) {
-                // It's STILL a tie! In this case, we could randomly pick or do something else. 
-                // For now, let's randomly banish one of the tied players to break deadlock.
+                // It's STILL a tie — randomly banish one of the tied players to break deadlock.
                 String winnerId = tiedPlayerIds.get(new java.util.Random().nextInt(tiedPlayerIds.size()));
+                // Record random pick data for the frontend slot machine animation
+                randomPickCandidates = tiedPlayerIds.stream()
+                        .map(id -> game.getPlayerList().stream()
+                                .filter(p -> p.getId().equals(id))
+                                .findFirst()
+                                .map(p -> p.getName())
+                                .orElse(id))
+                        .toList();
                 game.getPlayerList().stream()
                         .filter(p -> p.getId().equals(winnerId))
                         .findFirst()
                         .ifPresent(winner -> {
+                            randomPickedName = winner.getName();
                             winner.setLifeStatus(PlayerLifeStatusEnum.MARKED_FOR_BANISHMENT);
                             RoundObject round = game.getCurrentRound();
                             if (round != null) round.setPlayerBanished(winner);
@@ -140,6 +151,12 @@ public class BanishSecondRevealEvent implements EventObjectInterface {
     public boolean checkForNotifications() {
         return true;
     }
+
+    @Override
+    public String getRandomPickedName() { return randomPickedName; }
+
+    @Override
+    public java.util.List<String> getRandomPickCandidates() { return randomPickCandidates; }
 
     /**
      * Returns the banish votes as a timed sequence of reveal actions.

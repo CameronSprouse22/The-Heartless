@@ -286,7 +286,7 @@ public class GameService {
 
     private static final String[] TEST_PLAYER_NAMES = {
         //"Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel" 
-        "Alpha", "Bravo", "Charlie", "Delta" 
+        "A", "B", "C", "D" 
     };
 
     /**
