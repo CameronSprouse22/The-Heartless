@@ -296,6 +296,68 @@ public class GameController {
         }
     }
 
+    @GetMapping("/games/{gameCode}/role-reveal")
+    public ResponseEntity<Map<String, Object>> getRoleReveal(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        String playerId = gameService.getPlayerId(playerCode);
+        if (playerId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
+        }
+        try {
+            GameObject game = gameService.getGameOrThrow(gameCode);
+            Player player = game.findPlayerById(playerId);
+            if (player == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
+            }
+            List<Player> activePlayers = game.getPlayerList().stream()
+                    .filter(p -> !p.isDead() && p.getStatus() == com.heartless.model.enums.PlayerStatusEnum.ACTIVE)
+                    .collect(java.util.stream.Collectors.toList());
+            long confirmedCount = activePlayers.stream()
+                    .filter(p -> {
+                        UserSelectionsState state = game.getSelectionState(p.getId());
+                        return state != null && state.isSubmitPressed();
+                    })
+                    .count();
+            UserSelectionsState myState = game.getSelectionState(playerId);
+            boolean myConfirmed = myState != null && myState.isSubmitPressed();
+            Map<String, Object> result = new HashMap<>();
+            result.put("isTraitor", player.isTraitor());
+            result.put("myRole", player.isTraitor() ? "TRAITOR" : "FAITHFUL");
+            result.put("confirmedCount", (int) confirmedCount);
+            result.put("totalPlayers", activePlayers.size());
+            result.put("allConfirmed", !activePlayers.isEmpty() && confirmedCount == activePlayers.size());
+            result.put("myConfirmed", myConfirmed);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/games/{gameCode}/role-reveal/confirm")
+    public ResponseEntity<Map<String, Object>> confirmRoleReveal(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        String playerId = gameService.getPlayerId(playerCode);
+        if (playerId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
+        }
+        try {
+            GameObject game = gameService.getGameOrThrow(gameCode);
+            if (game.findPlayerById(playerId) == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
+            }
+            UserSelectionsState state = game.getSelectionState(playerId);
+            if (state == null) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "No role reveal active"));
+            }
+            state.setSubmitPressed(true);
+            return ResponseEntity.ok(Map.of("confirmed", true));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/games/{gameCode}/identity-reveal")
     public ResponseEntity<Map<String, Object>> getIdentityReveal(
             @PathVariable String gameCode,

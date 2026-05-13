@@ -31,4 +31,6 @@ public final class GameConfigurations {
     public static final long VOTE_REVEAL_EVENT_DURATION_MS    = FIVE_MINUTES_MS;
     /** Duration for the identity reveal event. Increase for larger player counts. */
     public static final long REVEAL_PLAYER_IDENTITY_EVENT_DURATION_MS = 2L * ONE_MINUTE_MS;
+    /** Duration for the role reveal event shown at game start. */
+    public static final long REVEAL_ROLE_EVENT_DURATION_MS = 90L * 1_000L;
 }

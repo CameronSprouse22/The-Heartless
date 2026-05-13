@@ -216,3 +216,17 @@ export function getIdentityReveal(gameCode, playerCode) {
     headers: authHeader(playerCode),
   });
 }
+
+// Role Reveal
+export function getRoleReveal(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/role-reveal`, {
+    headers: authHeader(playerCode),
+  });
+}
+
+export function confirmRoleReveal(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/role-reveal/confirm`, {
+    method: 'POST',
+    headers: authHeader(playerCode),
+  });
+}

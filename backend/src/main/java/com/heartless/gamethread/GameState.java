@@ -139,6 +139,8 @@ public class GameState {
                 "enabled", mc.isRevealEnabled(), "visible", mc.isRevealEnabled()));
         menuItems.add(Map.of("id", "identity-reveal", "label", "Identity Reveal",
                 "enabled", mc.isIdentityRevealEnabled(), "visible", mc.isIdentityRevealEnabled()));
+        menuItems.add(Map.of("id", "role-reveal", "label", "Role Reveal",
+                "enabled", mc.isRoleRevealEnabled(), "visible", mc.isRoleRevealEnabled()));
         return menuItems;
     }
 

@@ -2,6 +2,7 @@ package com.heartless.gamethread;
 
 import com.heartless.event.AfterLifeGameEvent;
 import com.heartless.event.EventObjectInterface;
+import com.heartless.event.RevealRoleEvent;
 import com.heartless.event.RevealPlayerIdentityEvent;
 import com.heartless.event.BanishPreEvent;
 import com.heartless.event.BanishRevealEvent;
@@ -81,6 +82,12 @@ public class GameThread {
         log.info("Game starting — gameId={}", gameObject.getGameId());
         this.statusString = "Round " + gameObject.getRound();
         gameObject.setCurrentTask("In progress");
+
+        // Run the role reveal event once at game start (before any rounds begin)
+        RevealRoleEvent roleReveal = new RevealRoleEvent(gameObject);
+        roleReveal.checkStartConditions();
+        currentEvent = roleReveal;
+        runCurrentEvent();
 
         while(gameObject.getRound() <= MAX_ROUNDS) {
             eventList.clear();
