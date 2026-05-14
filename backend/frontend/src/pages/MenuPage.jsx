@@ -12,6 +12,8 @@ import AllChatPage from './AllChatPage';
 import TraitorChatPage from './TraitorChatPage';
 import IndividualChatPage from './IndividualChatPage';
 import DeadChatPage from './DeadChatPage';
+import SitRepPage from './SitRepPage';
+import MiniGamePage from './MiniGamePage';
 
 function formatTime(ms) {
   if (!ms || ms <= 0) return '0:00';
@@ -90,7 +92,7 @@ function MenuPage() {
       // Auto-navigate when exactly one server-controlled item is enabled
       const enabledItems = (menuData.menuItems || []).filter(i => i.enabled && i.visible);
       const currentEndTime = menuData.eventEndTime || 0;
-      const PANEL_IDS = ['banish-vote', 'murder-vote', 'reveal', 'identity-reveal', 'role-reveal', 'all-chat', 'traitor-chat', 'individual-chat', 'dead-chat'];
+      const PANEL_IDS = ['banish-vote', 'murder-vote', 'reveal', 'identity-reveal', 'role-reveal', 'all-chat', 'traitor-chat', 'individual-chat', 'dead-chat', 'sitrep', 'mini-game'];
       if (enabledItems.length === 1 && currentEndTime && getAutoNavDone() !== currentEndTime) {
         const navId = enabledItems[0].id;
         if (PANEL_IDS.includes(navId)) {
@@ -222,6 +224,8 @@ function MenuPage() {
       case 'reveal':          setActivePanel('reveal'); break;
       case 'identity-reveal': setActivePanel('identity-reveal'); break;
       case 'role-reveal':     setActivePanel('role-reveal'); break;
+      case 'sitrep':          setActivePanel('sitrep'); break;
+      case 'mini-game':       setActivePanel('mini-game'); break;
       case 'actions':        navigate(`/actions/${gameCode}`); break;
       case 'game-options':   navigate(`/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`); break;
       case 'game-logs':      navigate(`/logs/${gameCode}`); break;
@@ -244,6 +248,8 @@ function MenuPage() {
     { id: 'actions',         label: '⚡ Actions' },
     { id: 'game-options',    label: '⚙️ Options' },
     { id: 'game-logs',       label: '📜 Game Logs' },
+    { id: 'sitrep',          label: '📋 Situation Report' },
+    { id: 'mini-game',       label: '🎮 Mini Game' },
   ];
 
   return (
@@ -376,6 +382,8 @@ function MenuPage() {
             {activePanel === 'traitor-chat' && <TraitorChatPage onClose={() => setActivePanel(null)} />}
             {activePanel === 'individual-chat' && <IndividualChatPage onClose={() => setActivePanel(null)} />}
             {activePanel === 'dead-chat' && <DeadChatPage onClose={() => setActivePanel(null)} />}
+            {activePanel === 'sitrep' && <SitRepPage onClose={() => setActivePanel(null)} />}
+            {activePanel === 'mini-game' && <MiniGamePage onClose={() => setActivePanel(null)} />}
           </div>
         </div>
       )}

@@ -16,17 +16,6 @@ public class GameCriteriaObject {
      * traitors outnumber or equal faithful alive players (traitors win).
      */
     public boolean checkGameConditions(GameObject game) {
-        long aliveTraitors = countAliveTraitors(game);
-        long aliveFaithful = countAliveFaithful(game);
-
-        // No traitors left -> faithful win -> end
-        if (aliveTraitors == 0) {
-            return false;
-        }
-        // Traitors >= faithful -> traitors win -> end
-        if (aliveTraitors >= aliveFaithful) {
-            return false;
-        }
         return true;
     }
 

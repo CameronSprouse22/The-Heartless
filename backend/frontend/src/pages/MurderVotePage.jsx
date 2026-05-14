@@ -129,7 +129,7 @@ function MurderVotePage({ onClose }) {
             borderRadius: '6px',
             border: v.submitted ? '1px solid #4CAF50' : '1px solid #888',
           }}>
-            <strong>{v.voterName}</strong>{v.submitted ? ' âœ“' : ''}:{' '}
+            <strong>{v.voterName}</strong>{v.submitted ? ' \u2713' : ''}:{' '}
             {v.targetNames.length > 0
               ? v.targetNames.join(', ')
               : <em style={{ color: '#bbb' }}>none selected</em>
@@ -167,7 +167,20 @@ function MurderVotePage({ onClose }) {
           />
         ))}
       </div>
-      <button onClick={handleSubmit} disabled={selected.length === 0} style={{ padding: '0.5rem 2rem' }}>
+      <button
+        onClick={handleSubmit}
+        disabled={selected.length === 0}
+        style={{
+          padding: '0.6rem 2rem',
+          background: selected.length > 0 ? '#2e7d32' : '#616161',
+          color: selected.length > 0 ? 'white' : '#9e9e9e',
+          border: 'none',
+          borderRadius: '6px',
+          fontSize: '1rem',
+          fontWeight: 600,
+          cursor: selected.length > 0 ? 'pointer' : 'not-allowed',
+        }}
+      >
         Submit Vote
       </button>
       <OthersPanel />

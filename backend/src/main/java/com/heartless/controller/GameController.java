@@ -1,7 +1,10 @@
 package com.heartless.controller;
 
+import com.heartless.config.GameConfigurations;
 import com.heartless.event.BanishVoteEvent;
 import com.heartless.event.EventAction;
+import com.heartless.event.MiniGameEvent;
+import com.heartless.event.MurderVoteEvent;
 import com.heartless.gamethread.GameState;
 import com.heartless.gamethread.GameThread;
 import com.heartless.model.GameObject;
@@ -145,7 +148,8 @@ public class GameController {
             Map<String, Object> stateMap = gameState.toMap();
             stateMap.put("playersRemaining", game.getActivePlayerCount());
             if (gameThread != null && gameThread.getCurrentEvent() != null) {
-                String initialMsg = gameThread.getCurrentEvent().getInitialMessage();
+                String initialMsg = GameConfigurations.SHOW_EVENT_DIALOGS
+                        ? gameThread.getCurrentEvent().getInitialMessage() : "";
                 boolean dismissed = game.hasPlayerDismissedInitialMessage(playerId);
                 stateMap.put("initialMessage", initialMsg != null ? initialMsg : "");
                 stateMap.put("hasDismissedInitialMessage", dismissed);
@@ -181,6 +185,113 @@ public class GameController {
             }
             game.dismissInitialMessage(playerId);
             return ResponseEntity.ok(Map.of("dismissed", true));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Mark the requesting player as ready in the lobby.
+     * All players (including VIP) must press Ready before "Start Game" is allowed.
+     */
+    @PostMapping("/games/{gameCode}/lobby/ready")
+    public ResponseEntity<Map<String, Object>> markLobbyReady(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        try {
+            Map<String, Object> result = gameService.markLobbyReady(gameCode, playerCode);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Toggle a player back to Not Ready in the lobby.
+     */
+    @PostMapping("/games/{gameCode}/lobby/unready")
+    public ResponseEntity<Map<String, Object>> markLobbyNotReady(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        try {
+            Map<String, Object> result = gameService.markLobbyNotReady(gameCode, playerCode);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * VIP starts the game even if some invited players have not responded.
+     * Starts with however many players are currently ACTIVE.
+     * Requires at least MIN_PLAYERS_TO_START players to be in the invite list.
+     */
+    @PostMapping("/games/{gameCode}/start-with-unconfirmed")
+    public ResponseEntity<Map<String, Object>> startGameWithUnconfirmed(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        try {
+            Map<String, Object> result = gameService.startGameWithUnconfirmed(gameCode, playerCode);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("VIP")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", msg));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", msg));
+        }
+    }
+
+    /**
+     * Returns the current situation report for a game:
+     * round, all players with life statuses, murdered/banished/banished-traitor lists.
+     */
+    @GetMapping("/games/{gameCode}/sitrep")
+    public ResponseEntity<Map<String, Object>> getSitRep(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        try {
+            Map<String, Object> result = gameService.getSitRep(gameCode, playerCode);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Records the calling player's acknowledgement of the situation report.
+     * When every active player has confirmed, the event ends early.
+     */
+    @PostMapping("/games/{gameCode}/sitrep/confirm")
+    public ResponseEntity<Map<String, Object>> confirmSitRep(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        String playerId = gameService.getPlayerId(playerCode);
+        if (playerId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
+        }
+        try {
+            GameObject game = gameService.getGameOrThrow(gameCode);
+            if (game.findPlayerById(playerId) == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
+            }
+            UserSelectionsState state = game.getSelectionState(playerId);
+            if (state == null) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "No sitrep active"));
+            }
+            state.setSubmitPressed(true);
+            long confirmedCount = game.getSelectionStateMap().values().stream()
+                    .filter(UserSelectionsState::isSubmitPressed).count();
+            long totalCount = game.getSelectionStateMap().size();
+            return ResponseEntity.ok(Map.of("confirmed", true, "confirmedCount", confirmedCount, "totalCount", totalCount));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
@@ -290,6 +401,19 @@ public class GameController {
                     result.put("randomPickCandidates", thread.getCurrentEvent().getRandomPickCandidates());
                 }
             }
+            // Confirmation progress (mirrors SitRep behaviour)
+            List<Player> activePlayers = game.getPlayerList().stream()
+                    .filter(p -> !p.isDead() && p.getStatus() == com.heartless.model.enums.PlayerStatusEnum.ACTIVE)
+                    .collect(java.util.stream.Collectors.toList());
+            long confirmedCount = activePlayers.stream()
+                    .filter(p -> {
+                        UserSelectionsState st = game.getSelectionState(p.getId());
+                        return st != null && st.isSubmitPressed();
+                    }).count();
+            UserSelectionsState myState = game.getSelectionState(playerId);
+            result.put("myConfirmed", myState != null && myState.isSubmitPressed());
+            result.put("confirmedCount", (int) confirmedCount);
+            result.put("requiredCount", activePlayers.size());
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
@@ -328,6 +452,10 @@ public class GameController {
             result.put("totalPlayers", activePlayers.size());
             result.put("allConfirmed", !activePlayers.isEmpty() && confirmedCount == activePlayers.size());
             result.put("myConfirmed", myConfirmed);
+            GameThread thread = gameService.getGameThread(gameCode);
+            if (thread != null && thread.getCurrentEvent() != null) {
+                result.put("eventEndTime", thread.getCurrentEvent().getEventEndTime());
+            }
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
@@ -356,6 +484,88 @@ public class GameController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
+    }
+
+    // ── Mini Game ────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the current question for this player (derived from how many they
+     * have already answered), plus aggregate progress and role flag.
+     */
+    @GetMapping("/games/{gameCode}/mini-game")
+    public ResponseEntity<Map<String, Object>> getMiniGame(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode) {
+        String playerId = gameService.getPlayerId(playerCode);
+        if (playerId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
+        }
+        try {
+            GameObject game = gameService.getGameOrThrow(gameCode);
+            Player player = game.findPlayerById(playerId);
+            if (player == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
+            }
+            MiniGameEvent miniGame = resolveMiniGameEvent(gameCode);
+            if (miniGame == null) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "No mini game active"));
+            }
+            Map<String, Object> status = new java.util.LinkedHashMap<>(miniGame.buildStatusMap(playerId));
+            status.put("isTraitor", player.isTraitor());
+            return ResponseEntity.ok(status);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Submit the calling player's answer to their current question.
+     * Body: { "selectedOption": "E" }
+     * Returns: { accepted, correct, questionIndex, done, nextQuestionIndex }
+     */
+    @PostMapping("/games/{gameCode}/mini-game/answer")
+    public ResponseEntity<Map<String, Object>> submitMiniGameAnswer(
+            @PathVariable String gameCode,
+            @RequestHeader("X-Player-Code") String playerCode,
+            @RequestBody Map<String, String> body) {
+        String playerId = gameService.getPlayerId(playerCode);
+        if (playerId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
+        }
+        String selectedOption = body.get("selectedOption");
+        if (selectedOption == null || selectedOption.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "selectedOption is required"));
+        }
+        try {
+            GameObject game = gameService.getGameOrThrow(gameCode);
+            if (game.findPlayerById(playerId) == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
+            }
+            MiniGameEvent miniGame = resolveMiniGameEvent(gameCode);
+            if (miniGame == null) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "No mini game active"));
+            }
+            Map<String, Object> result = miniGame.submitAnswer(playerId, selectedOption);
+            if (result == null) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Answer not accepted"));
+            }
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Resolves the active {@link MiniGameEvent} from the current game event chain.
+     * Returns {@code null} if there is no active mini game.
+     */
+    private MiniGameEvent resolveMiniGameEvent(String gameCode) {
+        GameThread thread = gameService.getGameThread(gameCode);
+        if (thread == null) return null;
+        var evt = thread.getCurrentEvent();
+        if (evt instanceof MiniGameEvent mg) return mg;
+        if (evt instanceof MurderVoteEvent mv && !mv.isMiniGameDone()) return mv.getMiniGameEvent();
+        return null;
     }
 
     @GetMapping("/games/{gameCode}/identity-reveal")
@@ -400,6 +610,11 @@ public class GameController {
             result.put("revealedPlayers", revealed);
             result.put("totalPlayers", actions.size());
             result.put("revealComplete", revealed.size() == actions.size());
+            // All player names for the slot-machine animation on the frontend
+            List<String> slotCandidates = game.getPlayerList().stream()
+                    .map(Player::getName)
+                    .collect(java.util.stream.Collectors.toList());
+            result.put("slotCandidates", slotCandidates);
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));

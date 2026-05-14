@@ -95,12 +95,12 @@ public class RevealRoleEvent implements EventObjectInterface {
 
     @Override
     public String getStartNotification() {
-        return "Your destiny awaits. Discover your role.";
+        return "Your part has been decided. Discover your role.";
     }
 
     @Override
     public String getInitialMessage() {
-        return "The Heartless begin their secret work. Find out who you are.";
+        return "The cast is set. Find out who you are.";
     }
 
     @Override

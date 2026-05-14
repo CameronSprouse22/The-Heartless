@@ -13,15 +13,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Reveals the identity (Traitor or Faithful) of all players.
+ * Reveals the identity (Traitor or Faithful) of dead players only.
+ * Dead players appear immediately (statically); the newly-banished player
+ * (or a "Banish Blocked" entry) is revealed via a slot-machine animation
+ * after a short lead-in.
  */
 public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     private static final long LEAD_IN_MS = 5_000L;
-    private static final long INTERVAL_MS = 4_000L;
 
     private final GameObject game;
     private Long startTime = null;
+    /** ID of the player who was MARKED_FOR_BANISHMENT when this event started (null = banish blocked). */
+    private String newlyBanishedPlayerId = null;
 
     public RevealPlayerIdentityEvent(GameObject game) {
         this.game = game;
@@ -38,8 +42,14 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     @Override
     public void onStart() {
-        // Transition any MARKED_FOR_BANISHMENT player to BANISHED now that the banish reveal is over.
-        // isDead() returns true for BANISHED, so buildGameState() will route them to AfterLife.
+        // Capture which player was MARKED_FOR_BANISHMENT before transitioning them.
+        // null means no one was banished this round → "Banish Blocked" will be shown.
+        game.getPlayerList().stream()
+                .filter(p -> p.getLifeStatus() == PlayerLifeStatusEnum.MARKED_FOR_BANISHMENT)
+                .findFirst()
+                .ifPresent(p -> newlyBanishedPlayerId = p.getId());
+
+        // Transition MARKED_FOR_BANISHMENT → BANISHED.
         game.getPlayerList().stream()
                 .filter(p -> p.getLifeStatus() == PlayerLifeStatusEnum.MARKED_FOR_BANISHMENT)
                 .forEach(p -> p.setLifeStatus(PlayerLifeStatusEnum.BANISHED));
@@ -64,9 +74,8 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
     @Override 
     public long getEventTime() {
-        int playerCount = game.getPlayerList().size();
-        // Lead-in + one interval per player + buffer after the last card flips
-        return LEAD_IN_MS + ((long) playerCount * INTERVAL_MS) + 5_000L;
+        // Lead-in for the slot machine + time for animation + buffer
+        return LEAD_IN_MS + 10_000L;
     }
 
     @Override
@@ -91,8 +100,10 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
     }
 
     /**
-     * Returns one timed reveal action per player, staggered by {@code INTERVAL_MS}.
-     * The first reveal fires {@code LEAD_IN_MS} after the event starts.
+     * Returns timed reveal actions.
+     * Dead players (except the newly-banished one) fire immediately at {@code startTime}.
+     * The newly-banished player (or a "Banish Blocked" sentinel) fires after {@code LEAD_IN_MS}
+     * to give the frontend time to start a slot-machine animation.
      */
     @Override
     public List<EventAction> getEvents() {
@@ -100,16 +111,51 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
 
         List<Player> players = game.getPlayerList();
         List<EventAction> actions = new ArrayList<>();
-        for (int i = 0; i < players.size(); i++) {
-            Player player = players.get(i);
+
+        // Immediately reveal all dead players except the newly-banished one.
+        for (Player player : players) {
+            if (!player.isDead()) continue;
+            if (player.getId().equals(newlyBanishedPlayerId)) continue;
+
             Map<String, Object> payload = new HashMap<>();
             payload.put("playerId", player.getId());
             payload.put("playerName", player.getName());
             payload.put("isTraitor", player.isTraitor());
             payload.put("role", player.isTraitor() ? "TRAITOR" : "FAITHFUL");
-            long fireAt = startTime + LEAD_IN_MS + ((long) i * INTERVAL_MS);
-            actions.add(new EventAction(payload, fireAt));
+            payload.put("deathType", player.getLifeStatus().name());
+            payload.put("isNewlyBanished", false);
+            actions.add(new EventAction(payload, startTime));
         }
+
+        // Slot-machine reveal: newly banished player or "Banish Blocked" sentinel.
+        if (newlyBanishedPlayerId != null) {
+            Player banished = players.stream()
+                    .filter(p -> p.getId().equals(newlyBanishedPlayerId))
+                    .findFirst().orElse(null);
+            if (banished != null) {
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("playerId", banished.getId());
+                payload.put("playerName", banished.getName());
+                payload.put("isTraitor", banished.isTraitor());
+                payload.put("role", banished.isTraitor() ? "TRAITOR" : "FAITHFUL");
+                payload.put("deathType", "BANISHED");
+                payload.put("isNewlyBanished", true);
+                payload.put("isBanishBlocked", false);
+                actions.add(new EventAction(payload, startTime + LEAD_IN_MS));
+            }
+        } else {
+            // No player was banished this round (e.g. blocked by an item).
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("playerId", "banish-blocked");
+            payload.put("playerName", "Banish Blocked");
+            payload.put("isTraitor", false);
+            payload.put("role", "BLOCKED");
+            payload.put("deathType", "BLOCKED");
+            payload.put("isNewlyBanished", true);
+            payload.put("isBanishBlocked", true);
+            actions.add(new EventAction(payload, startTime + LEAD_IN_MS));
+        }
+
         return actions;
     }
 }

@@ -16,6 +16,7 @@ function BanishVotePage({ onClose }) {
   // otherPlayers: { [voterId]: { voterName, targetName, submitted } }
   const [otherPlayers, setOtherPlayers] = useState({});
   const stompConnected = useRef(false);
+  const inputRef = useRef(null);
 
   const updateOtherPlayer = (voterId, voterName, targetId, targetName, isSubmitted) => {
     setOtherPlayers(prev => {
@@ -94,6 +95,13 @@ function BanishVotePage({ onClose }) {
   const selectedCandidate = candidates.find(c => c.id === selected);
   const canSubmit = selected !== null && nameInput.trim().length > 0;
 
+  // Auto-focus the text field when a player is selected
+  useEffect(() => {
+    if (selected !== null && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [selected]);
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     try {
@@ -169,8 +177,10 @@ function BanishVotePage({ onClose }) {
       <div style={{ marginBottom: '1rem' }}>
         <input
           type="text"
+          ref={inputRef}
           placeholder={selected ? 'Confirm player name...' : 'Select a player first'}
           value={nameInput}
+          onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
           onChange={e => {
             setNameInput(e.target.value);
             if (stompConnected.current) {
@@ -188,7 +198,20 @@ function BanishVotePage({ onClose }) {
           }}
         />
       </div>
-      <button onClick={handleSubmit} disabled={!canSubmit} style={{ padding: '0.5rem 2rem' }}>
+      <button
+        onClick={handleSubmit}
+        disabled={!canSubmit}
+        style={{
+          padding: '0.6rem 2rem',
+          background: canSubmit ? '#2e7d32' : '#616161',
+          color: canSubmit ? 'white' : '#9e9e9e',
+          border: 'none',
+          borderRadius: '6px',
+          fontSize: '1rem',
+          fontWeight: 600,
+          cursor: canSubmit ? 'pointer' : 'not-allowed',
+        }}
+      >
         Submit Vote
       </button>
     </div>

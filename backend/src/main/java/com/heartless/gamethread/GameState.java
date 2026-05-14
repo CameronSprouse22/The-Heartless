@@ -141,6 +141,10 @@ public class GameState {
                 "enabled", mc.isIdentityRevealEnabled(), "visible", mc.isIdentityRevealEnabled()));
         menuItems.add(Map.of("id", "role-reveal", "label", "Role Reveal",
                 "enabled", mc.isRoleRevealEnabled(), "visible", mc.isRoleRevealEnabled()));
+        menuItems.add(Map.of("id", "sitrep", "label", "Situation Report",
+                "enabled", mc.isSitRepEnabled(), "visible", mc.isSitRepEnabled()));
+        menuItems.add(Map.of("id", "mini-game", "label", "Mini Game",
+                "enabled", mc.isMiniGameEnabled(), "visible", mc.isMiniGameEnabled()));
         return menuItems;
     }
 

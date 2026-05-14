@@ -8,6 +8,7 @@ import com.heartless.model.Card;
 import com.heartless.push.PushNotificationService;
 import com.heartless.model.GameObject;
 import com.heartless.model.Player;
+import com.heartless.model.UserSelectionsState;
 import com.heartless.model.enums.GameStatusEnum;
 import com.heartless.model.enums.PlayerStatusEnum;
 import org.apache.logging.log4j.LogManager;
@@ -120,6 +121,12 @@ public class GameService {
             throw new SecurityException("Player not in this game");
         }
 
+        boolean isVip = game.getVip() != null && game.getVip().getId().equals(playerId);
+        long invitedCount = game.getPlayerList().stream()
+                .filter(p -> p.getStatus() != PlayerStatusEnum.REMOVED)
+                .count();
+        long readyCount = game.getLobbyReadyPlayerIds().size();
+
         Map<String, Object> state = new HashMap<>();
         state.put("gameId", game.getGameId());
         state.put("gameCode", game.getGameIdCode());
@@ -132,10 +139,18 @@ public class GameService {
         state.put("startGameTime", game.getStartGameTime());
         state.put("endGameTime", game.getEndGameTime());
         state.put("players", buildPublicPlayerList(game));
+        state.put("isVip", isVip);
+        state.put("invitedCount", invitedCount);
+        state.put("readyCount", readyCount);
+        state.put("myPlayerId", playerId);
+        state.put("isReady", game.isLobbyPlayerReady(playerId));
+        state.put("minPlayers", StartingGameSettings.MIN_PLAYERS_TO_START);
+        state.put("maxPlayers", StartingGameSettings.MAX_PLAYERS);
         return state;
     }
 
     private List<Map<String, Object>> buildPublicPlayerList(GameObject game) {
+        java.util.Set<String> readyIds = game.getLobbyReadyPlayerIds();
         return game.getPlayerList().stream()
                 .filter(p -> p.getStatus() != PlayerStatusEnum.REMOVED)
                 .map(p -> {
@@ -145,9 +160,150 @@ public class GameService {
                     pm.put("status", p.getStatus().name());
                     pm.put("isDead", p.isDead());
                     pm.put("lifeStatus", p.getLifeStatus().name());
+                    // Lobby-specific status label
+                    String lobbyStatus;
+                    if (p.getStatus() == PlayerStatusEnum.PENDING) {
+                        lobbyStatus = "INVITE_PENDING";
+                    } else if (p.getStatus() == PlayerStatusEnum.ACTIVE && readyIds.contains(p.getId())) {
+                        lobbyStatus = "READY";
+                    } else if (p.getStatus() == PlayerStatusEnum.ACTIVE) {
+                        lobbyStatus = "NOT_READY";
+                    } else {
+                        lobbyStatus = p.getStatus().name();
+                    }
+                    pm.put("lobbyStatus", lobbyStatus);
                     return pm;
                 })
                 .toList();
+    }
+
+    /**
+     * Marks the requesting player as ready in the lobby.
+     */
+    public Map<String, Object> markLobbyReady(String gameCode, String playerCode) {
+        GameObject game = getGameOrThrow(gameCode);
+        String playerId = getPlayerId(playerCode);
+        if (playerId == null || game.findPlayerById(playerId) == null) {
+            throw new SecurityException("Player not in this game");
+        }
+        game.markLobbyPlayerReady(playerId);
+        log.info("Player {} marked ready in lobby — gameCode={}", playerId, gameCode);
+        Map<String, Object> result = new HashMap<>();
+        result.put("ready", true);
+        result.put("playerId", playerId);
+        return result;
+    }
+
+    /**
+     * Removes a player's ready state in the lobby (they toggled back to Not Ready).
+     */
+    public Map<String, Object> markLobbyNotReady(String gameCode, String playerCode) {
+        GameObject game = getGameOrThrow(gameCode);
+        String playerId = getPlayerId(playerCode);
+        if (playerId == null || game.findPlayerById(playerId) == null) {
+            throw new SecurityException("Player not in this game");
+        }
+        game.markLobbyPlayerNotReady(playerId);
+        log.info("Player {} marked NOT ready in lobby — gameCode={}", playerId, gameCode);
+        Map<String, Object> result = new HashMap<>();
+        result.put("ready", false);
+        result.put("playerId", playerId);
+        return result;
+    }
+
+    /**
+     * Returns all sitrep data for the current game state:
+     * round, full player list with life statuses, and pre-filtered categories
+     * (murdered, banished, banished traitors).
+     */
+    public Map<String, Object> getSitRep(String gameCode, String playerCode) {
+        GameObject game = getGameOrThrow(gameCode);
+        String playerId = getPlayerId(playerCode);
+        if (playerId == null || game.findPlayerById(playerId) == null) {
+            throw new SecurityException("Player not in this game");
+        }
+
+        List<Map<String, Object>> allPlayers = new ArrayList<>();
+        List<Map<String, Object>> murderedPlayers = new ArrayList<>();
+        List<Map<String, Object>> banishedPlayers = new ArrayList<>();
+        List<Map<String, Object>> banishedTraitors = new ArrayList<>();
+
+        for (Player p : game.getPlayerList()) {
+            String lifeStatus = p.getLifeStatus().name();
+            boolean dead = p.isDead();
+
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("id", p.getId());
+            entry.put("name", p.getName());
+            entry.put("lifeStatus", lifeStatus);
+            entry.put("alive", !dead);
+            allPlayers.add(entry);
+
+            switch (p.getLifeStatus()) {
+                case MURDERED -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", p.getId());
+                    m.put("name", p.getName());
+                    murderedPlayers.add(m);
+                }
+                case BANISHED -> {
+                    Map<String, Object> b = new HashMap<>();
+                    b.put("id", p.getId());
+                    b.put("name", p.getName());
+                    b.put("wasTraitor", p.isTraitor());
+                    banishedPlayers.add(b);
+                    if (p.isTraitor()) {
+                        Map<String, Object> bt = new HashMap<>();
+                        bt.put("id", p.getId());
+                        bt.put("name", p.getName());
+                        banishedTraitors.add(bt);
+                    }
+                }
+                default -> { /* still in play */ }
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("round", game.getRound());
+        result.put("players", allPlayers);
+        result.put("murderedPlayers", murderedPlayers);
+        result.put("banishedPlayers", banishedPlayers);
+        result.put("banishedTraitors", banishedTraitors);
+        result.put("aliveCount", allPlayers.stream().filter(p -> Boolean.TRUE.equals(p.get("alive"))).count());
+        result.put("totalCount", allPlayers.size());
+        Map<String, UserSelectionsState> stateMap = game.getSelectionStateMap();
+        result.put("confirmedCount", stateMap.values().stream().filter(UserSelectionsState::isSubmitPressed).count());
+        result.put("requiredCount", (long) stateMap.size());
+        UserSelectionsState myState = game.getSelectionState(playerId);
+        result.put("myConfirmed", myState != null && myState.isSubmitPressed());
+        return result;
+    }
+
+    /**
+     * VIP starts the game with unconfirmed players — only active players participate.
+     * Requires at least MIN_PLAYERS_TO_START in the invite list (any status).
+     */
+    public Map<String, Object> startGameWithUnconfirmed(String gameCode, String playerCode) {
+        log.info("Starting game with unconfirmed — gameCode={}", gameCode);
+        GameObject game = getGameOrThrow(gameCode);
+        validateVip(game, playerCode);
+
+        long invitedCount = game.getPlayerList().stream()
+                .filter(p -> p.getStatus() != PlayerStatusEnum.REMOVED)
+                .count();
+        if (invitedCount < StartingGameSettings.MIN_PLAYERS_TO_START) {
+            throw new IllegalStateException(
+                "Need at least " + StartingGameSettings.MIN_PLAYERS_TO_START + " players invited to start");
+        }
+
+        List<Player> activePlayers = game.getPlayerList().stream()
+                .filter(p -> p.getStatus() == PlayerStatusEnum.ACTIVE)
+                .toList();
+        if (activePlayers.isEmpty()) {
+            throw new IllegalStateException("No active players available to start the game");
+        }
+
+        return doStartGame(game, gameCode, activePlayers, true);
     }
 
     public Map<String, Object> startGame(String gameCode, String playerCode) {
@@ -155,18 +311,50 @@ public class GameService {
         GameObject game = getGameOrThrow(gameCode);
         validateVip(game, playerCode);
 
+        long invitedCount = game.getPlayerList().stream()
+                .filter(p -> p.getStatus() != PlayerStatusEnum.REMOVED)
+                .count();
+        if (invitedCount < StartingGameSettings.MIN_PLAYERS_TO_START) {
+            throw new IllegalStateException(
+                "Need at least " + StartingGameSettings.MIN_PLAYERS_TO_START + " players invited to start");
+        }
+
+        // All non-VIP invited players must have accepted (ACTIVE)
+        long pendingCount = game.getPlayerList().stream()
+                .filter(p -> p.getStatus() == PlayerStatusEnum.PENDING)
+                .count();
+        if (pendingCount > 0) {
+            throw new IllegalStateException(
+                pendingCount + " invited player(s) have not yet accepted. Use \"Start With Unconfirmed\" to proceed anyway.");
+        }
+
         List<Player> activePlayers = game.getPlayerList().stream()
                 .filter(p -> p.getStatus() == PlayerStatusEnum.ACTIVE)
                 .toList();
 
-        int activeCount = activePlayers.size();
-        log.debug("Active player count={} for gameCode={}", activeCount, gameCode);
-        if (activeCount < StartingGameSettings.MIN_PLAYERS_TO_START) {
-            log.warn("Start rejected — only {} active players for gameCode={}", activeCount, gameCode);
-            throw new IllegalStateException("Need at least " + StartingGameSettings.MIN_PLAYERS_TO_START + " active players to start (currently " + activeCount + ")");
+        // All active players must have pressed Ready
+        java.util.Set<String> readyIds = game.getLobbyReadyPlayerIds();
+        List<String> notReadyNames = activePlayers.stream()
+                .filter(p -> !readyIds.contains(p.getId()))
+                .map(Player::getName)
+                .toList();
+        if (!notReadyNames.isEmpty()) {
+            throw new IllegalStateException(
+                "The following players are not ready: " + String.join(", ", notReadyNames));
         }
 
+        int activeCount = activePlayers.size();
+        log.debug("Active player count={} for gameCode={}", activeCount, gameCode);
+
+        return doStartGame(game, gameCode, activePlayers, false);
+    }
+
+    private Map<String, Object> doStartGame(GameObject game, String gameCode,
+                                             List<Player> activePlayers, boolean withUnconfirmed) {
+        int activeCount = activePlayers.size();
+
         synchronized (game) {
+            game.setLobbyVipForcedStart(true);
             game.transitionToStart();
             assignRoles(activePlayers, activeCount);
         }
@@ -290,8 +478,9 @@ public class GameService {
     };
 
     /**
-     * Creates a test game with 3 hardcoded players (Alpha through Charlie),
-     * all set to ACTIVE status so the game can be started immediately.
+     * Creates a test game with hardcoded players all set to ACTIVE + ready,
+     * and pre-sets the forced-start flag so the lobby event is bypassed immediately
+     * when startGame is called from the test dashboard.
      */
     public Map<String, Object> createTestGame() {
         String gameCode = generateGameCode();
@@ -304,7 +493,10 @@ public class GameService {
             String email = name.toLowerCase() + "@gmail.com";
             Player player = new Player(name, email, null);
             player.setStatus(PlayerStatusEnum.ACTIVE);
+            if (i < 2) player.setTraitor(true); // first 2 players are traitors
             game.addPlayer(player);
+            // Pre-mark all test players as ready so the lobby is skipped
+            game.markLobbyPlayerReady(player.getId());
 
             String playerCode = UUID.randomUUID().toString();
             playerCodeMap.put(playerCode, new String[]{gameCode, player.getId()});
@@ -316,6 +508,9 @@ public class GameService {
             info.put("email", email);
             playerInfoList.add(info);
         }
+
+        // Pre-flag forced start so the lobby event exits immediately
+        game.setLobbyVipForcedStart(true);
 
         gameStore.putGame(gameCode, game);
 

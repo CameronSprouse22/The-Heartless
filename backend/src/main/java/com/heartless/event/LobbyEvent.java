@@ -20,8 +20,16 @@ public class LobbyEvent implements EventObjectInterface {
     @Override
     public boolean checkStartConditions() { return true; }
 
+    /**
+     * Lobby ends when the VIP has triggered a start (forced or normal).
+     * The ready-check enforcement is handled in the service layer before
+     * transitionToStart() is called, so by the time this event runs, the
+     * forced-start flag has already been set.
+     */
     @Override
-    public boolean endConditonsMeet(GameObject gameObject) { return true; }
+    public boolean endConditonsMeet(GameObject gameObject) {
+        return gameObject.isLobbyVipForcedStart();
+    }
 
     @Override
     public ArrayList<UserSelectionsState> getUsersSelections() {
@@ -53,7 +61,7 @@ public class LobbyEvent implements EventObjectInterface {
 
     @Override
     public String getInitialMessage() {
-        return "Welcome! Wait here while all players join the game.";
+        return "Welcome! Press Ready when you are prepared to play.";
     }
 
     @Override

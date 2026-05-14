@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { getRevealedVotes, closeReveal } from '../services/api';
 
 // --- Slot Machine Component ---
@@ -88,7 +88,6 @@ function SlotMachine({ candidates, pickedName, onDone }) {
 
 function BanishRevealPage({ onClose }) {
   const { gameCode, playerName } = useParams();
-  const navigate = useNavigate();
   const playerCode = sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode');
 
   const [revealedVotes, setRevealedVotes] = useState([]);
@@ -97,6 +96,10 @@ function BanishRevealPage({ onClose }) {
   const [randomPickedName, setRandomPickedName] = useState(null);
   const [randomPickCandidates, setRandomPickCandidates] = useState([]);
   const [slotDone, setSlotDone] = useState(false);
+  const [myConfirmed, setMyConfirmed] = useState(false);
+  const [confirmedCount, setConfirmedCount] = useState(0);
+  const [requiredCount, setRequiredCount] = useState(0);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState('');
   const prevCountRef = useRef(0);
 
@@ -114,6 +117,9 @@ function BanishRevealPage({ onClose }) {
         setRevealComplete(data.revealComplete || false);
         if (data.randomPickedName) setRandomPickedName(data.randomPickedName);
         if (data.randomPickCandidates) setRandomPickCandidates(data.randomPickCandidates);
+        if (data.myConfirmed) setMyConfirmed(true);
+        if (data.confirmedCount !== undefined) setConfirmedCount(data.confirmedCount);
+        if (data.requiredCount !== undefined) setRequiredCount(data.requiredCount);
         prevCountRef.current = (data.revealedVotes || []).length;
       } catch (err) {
         setError(err.message || 'Failed to load reveal data');
@@ -233,28 +239,50 @@ function BanishRevealPage({ onClose }) {
       </div>
 
       <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-        <button
-          disabled={!canClose}
-          onClick={async () => {
-            try { await closeReveal(gameCode, playerCode); } catch { /* ignore */ }
-            if (onClose) {
-              onClose();
-            } else {
-              navigate(`/menu/${gameCode}/${encodeURIComponent(playerName || '')}`);
-            }
-          }}
-          style={{
+        {requiredCount > 0 && (
+          <div style={{
+            marginBottom: '0.75rem',
+            fontSize: '0.85rem',
+            color: '#888',
+          }}>
+            {confirmedCount} / {requiredCount} players confirmed
+          </div>
+        )}
+        {myConfirmed ? (
+          <div style={{
             padding: '0.6rem 2rem',
-            background: canClose ? '#607d8b' : '#444',
-            color: canClose ? 'white' : '#888',
-            border: 'none',
+            background: 'rgba(255,255,255,0.04)',
+            color: '#bbb',
+            border: '1px solid rgba(255,255,255,0.15)',
             borderRadius: '6px',
             fontSize: '1rem',
-            cursor: canClose ? 'pointer' : 'not-allowed',
-          }}
-        >
-          Close
-        </button>
+            fontWeight: 600,
+            display: 'inline-block',
+          }}>
+            ✓ Confirmed — awaiting others…
+          </div>
+        ) : (
+          <button
+            disabled={!canClose || confirming}
+            onClick={async () => {
+              setConfirming(true);
+              try { await closeReveal(gameCode, playerCode); setMyConfirmed(true); } catch { /* ignore */ }
+              setConfirming(false);
+            }}
+            style={{
+              padding: '0.6rem 2rem',
+              background: canClose ? '#2e7d32' : '#616161',
+              color: canClose ? 'white' : '#9e9e9e',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '1rem',
+              fontWeight: 600,
+              cursor: canClose ? 'pointer' : 'not-allowed',
+            }}
+          >
+            Ready
+          </button>
+        )}
       </div>
 
       {revealComplete && randomPickedName && (

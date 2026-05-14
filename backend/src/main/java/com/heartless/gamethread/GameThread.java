@@ -2,13 +2,18 @@ package com.heartless.gamethread;
 
 import com.heartless.event.AfterLifeGameEvent;
 import com.heartless.event.EventObjectInterface;
+import com.heartless.event.LobbyEvent;
 import com.heartless.event.RevealRoleEvent;
+import com.heartless.event.SitRepEvent;
 import com.heartless.event.RevealPlayerIdentityEvent;
 import com.heartless.event.BanishPreEvent;
 import com.heartless.event.BanishRevealEvent;
 import com.heartless.event.BanishVoteEvent;
 import com.heartless.event.BanishSecondRevealEvent;
 import com.heartless.event.BanishSecondVoteEvent;
+import com.heartless.event.MurderVoteEvent;
+import com.heartless.event.MurderRevealEvent;
+import com.heartless.event.MiniGameEvent;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
 import com.heartless.push.PushNotificationService;
@@ -83,11 +88,19 @@ public class GameThread {
         this.statusString = "Round " + gameObject.getRound();
         gameObject.setCurrentTask("In progress");
 
+        // Run the lobby event first — waits until VIP triggers game start
+        LobbyEvent lobbyEvent = new LobbyEvent(gameObject);
+        lobbyEvent.checkStartConditions();
+        currentEvent = lobbyEvent;
+        runCurrentEvent();
+        log.info("Lobby event complete — proceeding to role reveal — gameId={}", gameObject.getGameId());
+
         // Run the role reveal event once at game start (before any rounds begin)
         RevealRoleEvent roleReveal = new RevealRoleEvent(gameObject);
         roleReveal.checkStartConditions();
         currentEvent = roleReveal;
         runCurrentEvent();
+
 
         while(gameObject.getRound() <= MAX_ROUNDS) {
             eventList.clear();
@@ -105,13 +118,22 @@ public class GameThread {
             log.info("=== Round {} starting — activePlayers={} ({}) ===",
                     gameObject.getRound(), activeAtRoundStart.size(), activeAtRoundStart);
 
-            
+            eventList.add(new SitRepEvent(gameObject));
             eventList.add(new BanishPreEvent(gameObject));
             eventList.add(new BanishVoteEvent(gameObject));
             eventList.add(new BanishRevealEvent(gameObject));
             eventList.add(new BanishSecondVoteEvent(gameObject));
             eventList.add(new BanishSecondRevealEvent(gameObject));
             eventList.add(new RevealPlayerIdentityEvent(gameObject));
+
+
+            MurderVoteEvent murderEvent = new MurderVoteEvent(gameObject);
+            murderEvent.setMiniGameEvent(new MiniGameEvent(gameObject));
+            if (votingService != null) {
+                murderEvent.setVotingService(votingService, gameObject.getGameIdCode());
+            }
+            eventList.add(murderEvent);
+            eventList.add(new MurderRevealEvent(gameObject));
 
 
             for (EventObjectInterface event : eventList) {
@@ -139,6 +161,11 @@ public class GameThread {
 
             if (gameCriteriaObject.checkGameConditions(gameObject)) {
                 gameObject.startNewRound();
+            } else {
+                log.info("Game-end criteria met after round {} — ending game. gameId={}",
+                        gameObject.getRound(), gameObject.getGameId());
+                gameEnd();
+                return;
             }
 
         }
@@ -297,7 +324,7 @@ public class GameThread {
         }
         if (currentEvent != null) {
             log.debug("Active event: {}", currentEvent.getClass().getSimpleName());
-            return currentEvent.getGameState();
+            return currentEvent.getGameState(player);
         }
         log.debug("No active event — returning empty menu state");
         return GameState.fromMenuControl(new MenuControl(), gameObject);

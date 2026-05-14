@@ -53,6 +53,41 @@ export function startGame(gameCode, playerCode) {
   });
 }
 
+export function markLobbyReady(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/lobby/ready`, {
+    method: 'POST',
+    headers: authHeader(playerCode),
+  });
+}
+
+export function markLobbyNotReady(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/lobby/unready`, {
+    method: 'POST',
+    headers: authHeader(playerCode),
+  });
+}
+
+export function startGameWithUnconfirmed(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/start-with-unconfirmed`, {
+    method: 'POST',
+    headers: authHeader(playerCode),
+  });
+}
+
+// Situation Report
+export function getSitRep(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/sitrep`, {
+    headers: authHeader(playerCode),
+  });
+}
+
+export function confirmSitRep(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/sitrep/confirm`, {
+    method: 'POST',
+    headers: authHeader(playerCode),
+  });
+}
+
 // Player & Invitation
 export function invitePlayer(gameCode, playerCode, name, contact) {
   return fetchJson(`/games/${gameCode}/invite`, {
@@ -221,6 +256,21 @@ export function getIdentityReveal(gameCode, playerCode) {
 export function getRoleReveal(gameCode, playerCode) {
   return fetchJson(`/games/${gameCode}/role-reveal`, {
     headers: authHeader(playerCode),
+  });
+}
+
+// Mini Game
+export function getMiniGame(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/mini-game`, {
+    headers: authHeader(playerCode),
+  });
+}
+
+export function submitMiniGameAnswer(gameCode, playerCode, selectedOption) {
+  return fetchJson(`/games/${gameCode}/mini-game/answer`, {
+    method: 'POST',
+    headers: authHeader(playerCode),
+    body: JSON.stringify({ selectedOption }),
   });
 }
 

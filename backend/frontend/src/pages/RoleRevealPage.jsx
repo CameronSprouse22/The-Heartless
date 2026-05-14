@@ -20,12 +20,12 @@ const KEYFRAMES = `
     100% { transform: perspective(600px) rotateY(0deg) scale(1); opacity: 1; }
   }
   @keyframes rr-role-glow-traitor {
-    0%, 100% { text-shadow: 0 0 20px rgba(220,30,30,0.7), 0 0 60px rgba(255,0,0,0.4); }
-    50%       { text-shadow: 0 0 40px rgba(255,50,50,1), 0 0 100px rgba(200,0,0,0.7); }
+    0%, 100% { text-shadow: 0 0 14px rgba(200,60,60,0.35), 0 0 30px rgba(180,40,40,0.15); }
+    50%       { text-shadow: 0 0 22px rgba(220,80,80,0.55), 0 0 50px rgba(180,40,40,0.25); }
   }
   @keyframes rr-role-glow-faithful {
-    0%, 100% { text-shadow: 0 0 20px rgba(60,120,255,0.7), 0 0 60px rgba(30,80,220,0.4); }
-    50%       { text-shadow: 0 0 40px rgba(100,170,255,1), 0 0 100px rgba(60,120,255,0.7); }
+    0%, 100% { text-shadow: 0 0 14px rgba(80,130,220,0.35), 0 0 30px rgba(60,100,200,0.15); }
+    50%       { text-shadow: 0 0 22px rgba(100,150,240,0.55), 0 0 50px rgba(60,100,200,0.25); }
   }
   @keyframes rr-badge-in {
     0%   { opacity: 0; transform: scale(0.5) translateY(20px); }
@@ -33,8 +33,8 @@ const KEYFRAMES = `
     100% { opacity: 1; transform: scale(1) translateY(0); }
   }
   @keyframes rr-confirm-pulse {
-    0%, 100% { box-shadow: 0 0 10px 2px currentColor; }
-    50%       { box-shadow: 0 0 24px 8px currentColor; }
+    0%, 100% { box-shadow: 0 0 8px 2px rgba(255,255,255,0.15); }
+    50%       { box-shadow: 0 0 18px 5px rgba(255,255,255,0.25); }
   }
   @keyframes rr-suspense-fade-out {
     0%   { opacity: 1; transform: translateY(0) scale(1); }
@@ -44,20 +44,8 @@ const KEYFRAMES = `
     0%   { opacity: 0; transform: translateY(28px) scale(0.97); }
     100% { opacity: 1; transform: translateY(0) scale(1); }
   }
-  @keyframes rr-suspense-color {
-    0%   { color: #cc2222; text-shadow: 0 0 12px rgba(200,30,30,0.6); }
-    30%  { color: #aa2299; text-shadow: 0 0 12px rgba(170,30,150,0.6); }
-    60%  { color: #4455cc; text-shadow: 0 0 12px rgba(60,80,210,0.6); }
-    100% { color: #60a5fa; text-shadow: 0 0 16px rgba(96,165,250,0.7); }
-  }
-  @keyframes rr-dot-color {
-    0%   { background: #cc2222; box-shadow: 0 0 6px 2px rgba(200,30,30,0.6); }
-    30%  { background: #aa2299; box-shadow: 0 0 6px 2px rgba(170,30,150,0.6); }
-    60%  { background: #4455cc; box-shadow: 0 0 6px 2px rgba(60,80,210,0.6); }
-    100% { background: #60a5fa; box-shadow: 0 0 6px 2px rgba(96,165,250,0.7); }
-  }
   @keyframes rr-particle-float {
-    0%   { transform: translateY(0) scale(1); opacity: 0.8; }
+    0%   { transform: translateY(0) scale(1); opacity: 0.7; }
     100% { transform: translateY(-60px) scale(0); opacity: 0; }
   }
 `;
@@ -73,7 +61,9 @@ function injectStyles() {
 
 // ─── Particle burst on reveal ──────────────────────────────────────────────────
 function ParticleBurst({ isTraitor }) {
-  const color = isTraitor ? '#ff3333' : '#60a5fa';
+  // Mostly white sparks with a very faint color tint
+  const color = isTraitor ? 'rgba(240,210,210,0.9)' : 'rgba(210,220,240,0.9)';
+  const glowColor = isTraitor ? 'rgba(200,80,80,0.3)' : 'rgba(80,120,210,0.3)';
   const particles = Array.from({ length: 12 }, (_, i) => i);
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
@@ -84,12 +74,12 @@ function ParticleBurst({ isTraitor }) {
             position: 'absolute',
             left: `${30 + Math.random() * 40}%`,
             top: `${40 + Math.random() * 30}%`,
-            width: `${4 + Math.random() * 6}px`,
-            height: `${4 + Math.random() * 6}px`,
+            width: `${3 + Math.random() * 5}px`,
+            height: `${3 + Math.random() * 5}px`,
             borderRadius: '50%',
             background: color,
             animation: `rr-particle-float ${0.8 + Math.random() * 1.2}s ease-out ${Math.random() * 0.4}s forwards`,
-            boxShadow: `0 0 6px 2px ${color}`,
+            boxShadow: `0 0 6px 3px ${glowColor}`,
           }}
         />
       ))}
@@ -127,14 +117,22 @@ export default function RoleRevealPage({ onClose }) {
         // Schedule the reveal exactly once, on first successful data load
         if (!revealScheduled.current) {
           revealScheduled.current = true;
-          // At 13.5s: fade out the suspense text
-          setTimeout(() => setFadingOut(true), 13500);
-          // At 15s: flip to revealed phase with card fade-in
-          setTimeout(() => {
+          // If 5 seconds or fewer remain, skip the suspense animation entirely
+          const msLeft = data.eventEndTime ? data.eventEndTime - Date.now() : Infinity;
+          if (msLeft <= 5000) {
             setPhase('revealed');
             setShowParticles(true);
             setTimeout(() => setShowParticles(false), 2000);
-          }, 15000);
+          } else {
+            // At 13.5s: fade out the suspense text
+            setTimeout(() => setFadingOut(true), 13500);
+            // At 15s: flip to revealed phase with card fade-in
+            setTimeout(() => {
+              setPhase('revealed');
+              setShowParticles(true);
+              setTimeout(() => setShowParticles(false), 2000);
+            }, 15000);
+          }
         }
       } catch {
         // silently ignore — server may not have started the event yet
@@ -162,13 +160,10 @@ export default function RoleRevealPage({ onClose }) {
   const confirmedCount = roleData?.confirmedCount ?? 0;
   const totalPlayers = roleData?.totalPlayers ?? 0;
 
-  const bg = isTraitor
-    ? 'radial-gradient(ellipse at 50% 40%, #2d0000 0%, #0a0008 60%, #000 100%)'
-    : 'radial-gradient(ellipse at 50% 40%, #000d2e 0%, #001040 40%, #000 100%)';
-
-  const accentColor  = isTraitor ? '#ff3333' : '#60a5fa';
-  const accentGlow   = isTraitor ? 'rgba(255,50,50,0.5)' : 'rgba(96,165,250,0.5)';
-  const borderColor  = isTraitor ? 'rgba(200,30,30,0.6)' : 'rgba(60,120,255,0.6)';
+  // Mostly monochrome — accents are subtle tints, not vibrant colors
+  const accentColor  = isTraitor ? '#d97070' : '#7099cc';
+  const accentGlow   = isTraitor ? 'rgba(180,60,60,0.18)' : 'rgba(60,100,200,0.18)';
+  const borderColor  = isTraitor ? 'rgba(180,70,70,0.35)' : 'rgba(70,110,200,0.35)';
   const roleLabel    = isTraitor ? 'THE HEARTLESS' : 'THE FAITHFUL';
   const roleIcon     = isTraitor ? '🗡️' : '🛡️';
   const roleSubtitle = isTraitor
@@ -179,7 +174,7 @@ export default function RoleRevealPage({ onClose }) {
   return (
     <div style={{
       minHeight: '100%',
-      background: bg,
+      background: 'radial-gradient(ellipse at 50% 40%, #131313 0%, #060606 60%, #000 100%)',
       color: 'white',
       display: 'flex',
       flexDirection: 'column',
@@ -212,15 +207,17 @@ export default function RoleRevealPage({ onClose }) {
             fontSize: '1rem',
             letterSpacing: '0.25em',
             textTransform: 'uppercase',
-            animation: 'rr-suspense-text 2s ease-out forwards, rr-suspense-color 15s linear forwards',
+            color: '#999',
+            animation: 'rr-suspense-text 2s ease-out forwards',
           }}>
-            {roleData ? 'Your fate is sealed...' : 'Awaiting the reckoning...'}
+            {roleData ? 'Your part has been decided...' : 'Awaiting the reckoning...'}
           </p>
           <div style={{ marginTop: '2rem', display: 'flex', gap: '6px', justifyContent: 'center' }}>
             {[0, 1, 2].map((i) => (
               <div key={i} style={{
                 width: '8px', height: '8px', borderRadius: '50%',
-                animation: `rr-dot-color 15s linear forwards, rr-pulse-bg 1s ease-in-out ${i * 0.3}s infinite`,
+                background: '#555',
+                animation: `rr-pulse-bg 1s ease-in-out ${i * 0.3}s infinite`,
               }} />
             ))}
           </div>
@@ -243,13 +240,12 @@ export default function RoleRevealPage({ onClose }) {
           {/* Role card */}
           <div style={{
             width: '100%',
-            border: `2px solid ${borderColor}`,
+            border: `1px solid ${borderColor}`,
             borderRadius: '16px',
             padding: '2rem 1.5rem',
-            background: isTraitor
-              ? 'linear-gradient(160deg, rgba(80,5,5,0.5) 0%, rgba(20,0,0,0.9) 100%)'
-              : 'linear-gradient(160deg, rgba(5,20,80,0.5) 0%, rgba(0,5,30,0.9) 100%)',
-            boxShadow: `0 0 40px ${accentGlow}, inset 0 1px 0 ${borderColor}`,
+            background: 'linear-gradient(160deg, rgba(28,28,28,0.95) 0%, rgba(10,10,10,0.98) 100%)',
+            boxShadow: `0 0 30px ${accentGlow}, inset 0 1px 0 rgba(255,255,255,0.06)`,
+            backdropFilter: 'blur(4px)',
             textAlign: 'center',
             animation: 'rr-card-flip 0.7s cubic-bezier(0.22,1,0.36,1) forwards',
           }}>
@@ -276,11 +272,11 @@ export default function RoleRevealPage({ onClose }) {
             <h1 style={{
               fontSize: '2rem',
               fontWeight: '900',
-              color: accentColor,
+              color: '#e8e8e8',
               letterSpacing: '0.15em',
               textTransform: 'uppercase',
               margin: '0 0 0.5rem 0',
-              animation: `${glowAnim} 2.5s ease-in-out infinite`,
+              animation: `${glowAnim} 3s ease-in-out infinite`,
             }}>
               {roleLabel}
             </h1>
@@ -326,7 +322,7 @@ export default function RoleRevealPage({ onClose }) {
             border: '1px solid rgba(255,255,255,0.08)',
           }}>
             <span>Players confirmed</span>
-            <span style={{ fontWeight: 'bold', color: accentColor }}>
+            <span style={{ fontWeight: 'bold', color: '#ccc' }}>
               {confirmedCount} / {totalPlayers}
             </span>
           </div>
@@ -342,15 +338,12 @@ export default function RoleRevealPage({ onClose }) {
                 fontWeight: 'bold',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
-                background: isTraitor
-                  ? 'linear-gradient(135deg, #7f0000 0%, #cc0000 100%)'
-                  : 'linear-gradient(135deg, #0d3080 0%, #1565c0 100%)',
-                color: accentColor,
-                border: `1px solid ${accentColor}`,
+                background: 'linear-gradient(135deg, #1a1a1a 0%, #222 100%)',
+                color: '#ddd',
+                border: `1px solid ${borderColor}`,
                 borderRadius: '10px',
                 cursor: 'pointer',
                 animation: `rr-confirm-pulse 2s ease-in-out infinite`,
-                animationTimingFunction: 'ease-in-out',
               }}
             >
               {isTraitor ? '⚔️  I am the Heartless' : '🛡️  I am Faithful'}
@@ -362,8 +355,8 @@ export default function RoleRevealPage({ onClose }) {
               fontSize: '1rem',
               fontWeight: 'bold',
               textAlign: 'center',
-              color: accentColor,
-              border: `1px solid ${accentColor}`,
+              color: '#bbb',
+              border: '1px solid rgba(255,255,255,0.15)',
               borderRadius: '10px',
               background: 'rgba(255,255,255,0.03)',
               letterSpacing: '0.08em',

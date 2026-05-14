@@ -17,6 +17,7 @@ import GameEventPage from './pages/GameEventPage';
 import TestDashboardPage from './pages/TestDashboardPage';
 import NotificationsPage from './pages/NotificationsPage';
 import GameOptionsPage from './pages/GameOptionsPage';
+import MiniGamePage from './pages/MiniGamePage';
 import GamePageWrapper from './components/GamePageWrapper';
 
 function NotFoundPage() {
@@ -43,6 +44,7 @@ function App() {
         <Route path="/event/:gameCode" element={<GamePageWrapper><GameEventPage /></GamePageWrapper>} />
         <Route path="/test-dashboard" element={<TestDashboardPage />} />
         <Route path="/gameOptions/:gameCode/:playerName" element={<GamePageWrapper><GameOptionsPage /></GamePageWrapper>} />
+        <Route path="/mini-game/:gameCode" element={<GamePageWrapper><MiniGamePage /></GamePageWrapper>} />
         <Route path="/notifications/:gameCode/:playerName" element={<NotificationsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

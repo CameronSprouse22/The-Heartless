@@ -5,9 +5,13 @@ import com.heartless.model.enums.GameStageEnum;
 import com.heartless.model.enums.GameStatusEnum;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -37,6 +41,12 @@ public class GameObject {
     private Map<String, UserSelectionsState> selectionStateMap;
     /** IDs of the players who tied in the most recent banish vote; empty when no tiebreak is active. */
     private List<String> tieBreakCandidateIds = new ArrayList<>();
+
+    /** Player IDs who have pressed "Ready" in the pre-game lobby. Thread-safe. */
+    private final Set<String> lobbyReadyPlayerIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+    /** Set by the VIP when they initiate the game start (with or without unconfirmed players). */
+    private volatile boolean lobbyVipForcedStart = false;
 
     public GameObject(String gameIdCode) {
         this.gameId = ID_GENERATOR.getAndIncrement();
@@ -268,5 +278,37 @@ public class GameObject {
         return (int) playerList.stream()
                 .filter(p -> p.getStatus() != com.heartless.model.enums.PlayerStatusEnum.REMOVED)
                 .count();
+    }
+
+    // --- Lobby Ready State ---
+
+    /** Marks a player as ready in the pre-game lobby. */
+    public void markLobbyPlayerReady(String playerId) {
+        lobbyReadyPlayerIds.add(playerId);
+    }
+
+    /** Removes a player's ready state (they pressed "Not Ready"). */
+    public void markLobbyPlayerNotReady(String playerId) {
+        lobbyReadyPlayerIds.remove(playerId);
+    }
+
+    /** Returns true if the given player has pressed Ready in the lobby. */
+    public boolean isLobbyPlayerReady(String playerId) {
+        return lobbyReadyPlayerIds.contains(playerId);
+    }
+
+    /** Returns an unmodifiable snapshot of all ready player IDs. */
+    public Set<String> getLobbyReadyPlayerIds() {
+        return Collections.unmodifiableSet(new HashSet<>(lobbyReadyPlayerIds));
+    }
+
+    /** Sets the VIP forced-start flag (bypasses ready checks). */
+    public void setLobbyVipForcedStart(boolean forcedStart) {
+        this.lobbyVipForcedStart = forcedStart;
+    }
+
+    /** Returns true if the VIP has triggered a forced start. */
+    public boolean isLobbyVipForcedStart() {
+        return lobbyVipForcedStart;
     }
 }

@@ -5,6 +5,7 @@ import com.heartless.model.GameObject;
 import com.heartless.model.Player;
 import com.heartless.model.UserSelectionsState;
 import com.heartless.model.Vote;
+import com.heartless.model.enums.PlayerLifeStatusEnum;
 import com.heartless.model.enums.PlayerStatusEnum;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -283,6 +284,43 @@ public class VotingService {
         banishVotes.remove(gameCode);
         banishSecondVotes.remove(gameCode);
         murderVotes.remove(gameCode);
+    }
+
+    /**
+     * Tallies murder votes for this game and marks the plurality winner as MARKED_FOR_MURDER.
+     * Called by MurderVoteEvent when all traitors have submitted their vote.
+     * If no votes have been cast this is a no-op (no murder).
+     */
+    public void applyMurderResult(String gameCode, GameObject game) {
+        List<Map<String, Object>> votes = murderVotes.getOrDefault(gameCode, List.of());
+        if (votes.isEmpty()) return;
+
+        // Tally votes per target
+        Map<String, Integer> tally = new HashMap<>();
+        for (Map<String, Object> vote : votes) {
+            @SuppressWarnings("unchecked")
+            List<String> targetIds = (List<String>) vote.get("targetIds");
+            if (targetIds != null) {
+                for (String tid : targetIds) {
+                    tally.merge(tid, 1, Integer::sum);
+                }
+            }
+        }
+        if (tally.isEmpty()) return;
+
+        // Find plurality winner (random pick on tie)
+        int maxVotes = tally.values().stream().mapToInt(Integer::intValue).max().orElse(0);
+        List<String> topIds = tally.entrySet().stream()
+                .filter(e -> e.getValue() == maxVotes)
+                .map(Map.Entry::getKey)
+                .toList();
+        String winnerId = topIds.size() == 1 ? topIds.get(0)
+                : topIds.get(new Random().nextInt(topIds.size()));
+
+        Player target = game.findPlayerById(winnerId);
+        if (target != null && !target.isDead()) {
+            target.setLifeStatus(PlayerLifeStatusEnum.MARKED_FOR_MURDER);
+        }
     }
 
     private List<Map<String, Object>> getOtherMurderVotes(String gameCode, String playerId, GameObject game) {

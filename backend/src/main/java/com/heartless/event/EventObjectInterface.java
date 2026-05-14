@@ -2,6 +2,7 @@ package com.heartless.event;
 
 import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
+import com.heartless.model.Player;
 import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
@@ -36,6 +37,15 @@ public interface EventObjectInterface {
      * custom to each event implementation.
      */
     GameState getGameState();
+
+    /**
+     * Returns a player-specific GameState snapshot for this event.
+     * Override in events that need to differentiate between player roles.
+     * Defaults to the role-agnostic {@link #getGameState()}.
+     */
+    default GameState getGameState(Player player) {
+        return getGameState();
+    }
 
     /**
      * Returns the total configured duration for this event in milliseconds,
