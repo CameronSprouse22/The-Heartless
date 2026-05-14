@@ -10,8 +10,6 @@ import com.heartless.model.enums.PlayerStatusEnum;
 import com.heartless.service.VotingService;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public class MurderVoteEvent implements EventObjectInterface {
 
@@ -50,11 +48,21 @@ public class MurderVoteEvent implements EventObjectInterface {
     public void onStart() {
         if (miniGameEvent != null) {
             miniGameEvent.setOverrideEndTime(getEventEndTime()); // share the single timer
-            miniGameEvent.checkStartConditions();
+            miniGameEvent.checkStartConditions(); // inits selection states for ALL players
             miniGameEvent.onStart();
         } else {
-            transitionToMurderVote();
+            // No mini game — initialise traitor selection states directly
+            game.initSelectionStates(
+                    game.getPlayerList().stream()
+                            .filter(p -> !p.isDead()
+                                    && p.getStatus() == PlayerStatusEnum.ACTIVE
+                                    && p.isTraitor())
+                            .map(Player::getId)
+                            .toList()
+            );
         }
+        // Traitors see the murder vote immediately, in parallel with the mini game
+        miniGameDone = true;
     }
 
     /** Switch from mini game phase to murder vote phase, initialising only traitor selection states. */
@@ -72,37 +80,14 @@ public class MurderVoteEvent implements EventObjectInterface {
 
     @Override
     public boolean endConditonsMeet(GameObject gameObject) {
-        if (!miniGameDone) {
-            // Traitors advance to murder vote as soon as they all finish the mini game;
-            // faithful players still playing don't block the transition.
-            List<Player> activeTraitors = game.getPlayerList().stream()
-                    .filter(p -> !p.isDead() && p.getStatus() == PlayerStatusEnum.ACTIVE && p.isTraitor())
-                    .toList();
-            boolean allTraitorsDone = !activeTraitors.isEmpty() && activeTraitors.stream()
-                    .allMatch(p -> {
-                        UserSelectionsState state = game.getSelectionState(p.getId());
-                        return state != null && state.isSubmitPressed();
-                    });
-            boolean miniGameEnded = miniGameEvent == null
-                    || allTraitorsDone
-                    || miniGameEvent.endConditonsMeet(gameObject)
-                    || (startTime != null && System.currentTimeMillis() >= startTime + getEventTime());
-            if (miniGameEnded) {
-                if (miniGameEvent != null) miniGameEvent.resolveEvent();
-                transitionToMurderVote();
-            }
-            return false; // never complete during mini game phase
-        }
-        // Murder vote phase: end only when ALL traitors have submitted their vote.
-        // Time expiry is handled by the GameThread (getEventEndTime) — no timer check here.
-        Map<String, UserSelectionsState> stateMap = gameObject.getSelectionStateMap();
-        if (stateMap == null || stateMap.isEmpty()) return true; // no traitors — end immediately
-        boolean allVoted = stateMap.values().stream().allMatch(UserSelectionsState::isSubmitPressed);
-        if (allVoted) {
-            applyMurder();
-            return true;
-        }
+        // Always run to the full timer so the mini game and murder vote end together.
+        // Murder result is applied in resolveEvent() when the timer expires.
         return false;
+    }
+
+    @Override
+    public void resolveEvent() {
+        applyMurder();
     }
 
     /** Tally murder votes and mark the plurality winner as MARKED_FOR_MURDER. */
@@ -119,15 +104,13 @@ public class MurderVoteEvent implements EventObjectInterface {
 
     /**
      * Player-specific state:
-     * - Mini game phase   → everyone sees the mini game
-     * - Murder vote phase → traitors see the murder vote; faithful see nothing
+     * - Faithful players see the mini game for the full duration
+     * - Traitors see the murder vote + traitor chat alongside the mini game
      */
     @Override
     public GameState getGameState(Player player) {
-        if (!miniGameDone && miniGameEvent != null) {
-            return miniGameEvent.getGameState();
-        }
         MenuControl mc = new MenuControl();
+        mc.setMiniGameEnabled(true); // everyone sees the mini game
         if (player.isTraitor()) {
             mc.setMurderVoteEnabled(true);
             mc.setTraitorChatEnabled(true);
@@ -162,10 +145,8 @@ public class MurderVoteEvent implements EventObjectInterface {
 
     @Override
     public String getInitialMessage() {
-        if (!miniGameDone && miniGameEvent != null) {
-            return miniGameEvent.getInitialMessage();
-        }
-        return "The night falls. Traitors \u2014 select your target carefully.";
+        return miniGameEvent != null ? miniGameEvent.getInitialMessage()
+                : "The night falls. Traitors — select your target carefully.";
     }
 
     @Override

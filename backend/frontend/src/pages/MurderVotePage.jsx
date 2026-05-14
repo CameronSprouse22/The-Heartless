@@ -145,7 +145,6 @@ function MurderVotePage({ onClose }) {
       <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center', color: '#e0e0e0' }}>
         <h2>Vote Cast</h2>
         <p>Your murder vote has been recorded.</p>
-        <OthersPanel />
         <button onClick={() => onClose ? onClose() : navigate(`/menu/${gameCode}/${encodeURIComponent(playerName)}`)}>Back to Menu</button>
       </div>
     );
@@ -183,7 +182,6 @@ function MurderVotePage({ onClose }) {
       >
         Submit Vote
       </button>
-      <OthersPanel />
     </div>
   );
 }

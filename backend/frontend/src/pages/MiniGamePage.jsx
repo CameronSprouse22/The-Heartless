@@ -118,47 +118,67 @@ export default function MiniGamePage({ onClose }) {
           You answered all {totalQuestions} question{totalQuestions !== 1 ? 's' : ''}.
         </p>
 
-        {/* Completion progress modal card */}
-        <div style={{
-          background: '#1e1e2e',
-          border: '1px solid #444',
-          borderRadius: '12px',
-          padding: '1.25rem',
-          marginBottom: '1rem',
-        }}>
-          <p style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '0.75rem' }}>
-            Waiting for other players\u2026
-          </p>
-          {/* Progress bar */}
+        {isTraitor ? (
+          /* Traitors: direct them back to the menu where murder vote is waiting */
           <div style={{
-            background: '#333',
-            borderRadius: '999px',
-            height: '8px',
-            marginBottom: '0.5rem',
-            overflow: 'hidden',
+            background: '#1e1e2e',
+            border: '1px solid #b71c1c',
+            borderRadius: '12px',
+            padding: '1.25rem',
+            marginBottom: '1rem',
           }}>
-            <div style={{
-              width: `${requiredCount > 0 ? Math.round((completedCount / requiredCount) * 100) : 0}%`,
-              height: '100%',
-              background: '#43a047',
-              borderRadius: '999px',
-              transition: 'width 0.4s',
-            }} />
-          </div>
-          <p style={{ fontSize: '1rem', fontWeight: 700, color: '#e0e0e0' }}>
-            {completedCount} / {requiredCount} players completed
-          </p>
-          {isTraitor && (
-            <p style={{
-              marginTop: '0.75rem',
-              fontSize: '0.85rem',
-              color: '#ef9a9a',
-              fontStyle: 'italic',
-            }}>
-              \u2694\ufe0f Once everyone finishes, the murder vote will begin.
+            <p style={{ fontSize: '0.9rem', color: '#ef9a9a', marginBottom: '1rem' }}>
+              \u2694\ufe0f The murder vote is ready — return to the menu to cast your vote.
             </p>
-          )}
-        </div>
+            <button
+              onClick={() => onClose?.()}
+              style={{
+                padding: '0.6rem 1.4rem',
+                background: '#c62828',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Go to Murder Vote \u2192
+            </button>
+          </div>
+        ) : (
+          /* Faithful: show progress bar while waiting */
+          <div style={{
+            background: '#1e1e2e',
+            border: '1px solid #444',
+            borderRadius: '12px',
+            padding: '1.25rem',
+            marginBottom: '1rem',
+          }}>
+            <p style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '0.75rem' }}>
+              Waiting for other players\u2026
+            </p>
+            {/* Progress bar */}
+            <div style={{
+              background: '#333',
+              borderRadius: '999px',
+              height: '8px',
+              marginBottom: '0.5rem',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                width: `${requiredCount > 0 ? Math.round((completedCount / requiredCount) * 100) : 0}%`,
+                height: '100%',
+                background: '#43a047',
+                borderRadius: '999px',
+                transition: 'width 0.4s',
+              }} />
+            </div>
+            <p style={{ fontSize: '1rem', fontWeight: 700, color: '#e0e0e0' }}>
+              {completedCount} / {requiredCount} players completed
+            </p>
+          </div>
+        )}
       </div>
     );
   }

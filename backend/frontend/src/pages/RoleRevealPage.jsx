@@ -99,6 +99,9 @@ export default function RoleRevealPage({ onClose }) {
   const [showParticles, setShowParticles] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
   const revealScheduled = useRef(false);
+  const phaseRef = useRef('suspense');   // mirror of phase, readable inside poll closure
+  const fadeTimerRef = useRef(null);
+  const revealTimerRef = useRef(null);
   const pollRef = useRef(null);
 
   useEffect(() => {
@@ -109,30 +112,35 @@ export default function RoleRevealPage({ onClose }) {
   useEffect(() => {
     if (!playerCode) return;
 
+    const triggerReveal = () => {
+      if (phaseRef.current !== 'suspense') return;
+      clearTimeout(fadeTimerRef.current);
+      clearTimeout(revealTimerRef.current);
+      phaseRef.current = 'revealed';
+      setFadingOut(false);
+      setPhase('revealed');
+      setShowParticles(true);
+      setTimeout(() => setShowParticles(false), 2000);
+    };
+
     const poll = async () => {
       try {
         const data = await getRoleReveal(gameCode, playerCode);
         setRoleData(data);
         if (data.myConfirmed) setConfirmed(true);
+        const msLeft = data.eventEndTime ? data.eventEndTime - Date.now() : Infinity;
+
+        // If ≤5s remain and still in suspense, skip the animation and reveal now
+        if (phaseRef.current === 'suspense' && msLeft <= 5000) {
+          triggerReveal();
+          return;
+        }
+
         // Schedule the reveal exactly once, on first successful data load
         if (!revealScheduled.current) {
           revealScheduled.current = true;
-          // If 5 seconds or fewer remain, skip the suspense animation entirely
-          const msLeft = data.eventEndTime ? data.eventEndTime - Date.now() : Infinity;
-          if (msLeft <= 5000) {
-            setPhase('revealed');
-            setShowParticles(true);
-            setTimeout(() => setShowParticles(false), 2000);
-          } else {
-            // At 13.5s: fade out the suspense text
-            setTimeout(() => setFadingOut(true), 13500);
-            // At 15s: flip to revealed phase with card fade-in
-            setTimeout(() => {
-              setPhase('revealed');
-              setShowParticles(true);
-              setTimeout(() => setShowParticles(false), 2000);
-            }, 15000);
-          }
+          fadeTimerRef.current = setTimeout(() => setFadingOut(true), 13500);
+          revealTimerRef.current = setTimeout(triggerReveal, 15000);
         }
       } catch {
         // silently ignore — server may not have started the event yet

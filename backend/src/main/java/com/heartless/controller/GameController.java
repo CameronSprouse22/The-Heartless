@@ -564,7 +564,8 @@ public class GameController {
         if (thread == null) return null;
         var evt = thread.getCurrentEvent();
         if (evt instanceof MiniGameEvent mg) return mg;
-        if (evt instanceof MurderVoteEvent mv && !mv.isMiniGameDone()) return mv.getMiniGameEvent();
+        // Mini game is always active for the full duration of MurderVoteEvent now
+        if (evt instanceof MurderVoteEvent mv && mv.getMiniGameEvent() != null) return mv.getMiniGameEvent();
         return null;
     }
 
