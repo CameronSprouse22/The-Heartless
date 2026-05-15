@@ -193,8 +193,12 @@ function BanishVotePage({ onClose }) {
             width: '100%',
             boxSizing: 'border-box',
             borderRadius: '6px',
-            border: selected ? '2px solid #4CAF50' : '2px solid #eee',
+            border: selected ? '2px solid #4CAF50' : '2px solid #555',
             fontSize: '1rem',
+            background: selected ? '#fff' : '#2a2a2a',
+            color: selected ? '#111' : '#666',
+            opacity: selected ? 1 : 0.55,
+            cursor: selected ? 'text' : 'not-allowed',
           }}
         />
       </div>
@@ -203,13 +207,15 @@ function BanishVotePage({ onClose }) {
         disabled={!canSubmit}
         style={{
           padding: '0.6rem 2rem',
-          background: canSubmit ? '#2e7d32' : '#616161',
-          color: canSubmit ? 'white' : '#9e9e9e',
-          border: 'none',
+          background: canSubmit ? '#2e7d32' : '#3a3a3a',
+          color: canSubmit ? 'white' : '#555',
+          border: canSubmit ? 'none' : '1.5px dashed #555',
           borderRadius: '6px',
           fontSize: '1rem',
           fontWeight: 600,
           cursor: canSubmit ? 'pointer' : 'not-allowed',
+          opacity: canSubmit ? 1 : 0.5,
+          letterSpacing: canSubmit ? 'normal' : '0.04em',
         }}
       >
         Submit Vote

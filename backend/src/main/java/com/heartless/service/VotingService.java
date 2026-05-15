@@ -189,7 +189,7 @@ public class VotingService {
         }
 
         List<Map<String, Object>> candidates = game.getPlayerList().stream()
-                .filter(p -> p.getStatus() == PlayerStatusEnum.ACTIVE && !p.isDead() && !p.getId().equals(playerId))
+                .filter(p -> p.getStatus() == PlayerStatusEnum.ACTIVE && !p.isDead() && !p.getId().equals(playerId) && !p.isTraitor())
                 .map(p -> {
                     Map<String, Object> c = new HashMap<>();
                     c.put("id", p.getId());
@@ -198,10 +198,24 @@ public class VotingService {
                 })
                 .toList();
 
+        // Other active traitors (for consensus check on the frontend)
+        List<Map<String, Object>> coTraitors = game.getPlayerList().stream()
+                .filter(p -> p.isTraitor() && !p.isDead()
+                        && !p.getId().equals(playerId)
+                        && p.getStatus() == PlayerStatusEnum.ACTIVE)
+                .map(p -> {
+                    Map<String, Object> t = new HashMap<>();
+                    t.put("id", p.getId());
+                    t.put("name", p.getName());
+                    return t;
+                })
+                .toList();
+
         Map<String, Object> result = new HashMap<>();
         result.put("voteType", "MURDER");
         result.put("votingEnabled", true);
         result.put("candidates", candidates);
+        result.put("coTraitors", coTraitors);
         List<Map<String, Object>> existingVoteRecords = murderVotes.getOrDefault(gameCode, List.of());
         List<String> existingVotes = existingVoteRecords.stream()
                 .filter(v -> playerId.equals(v.get("voterId")))
@@ -325,6 +339,7 @@ public class VotingService {
 
     private List<Map<String, Object>> getOtherMurderVotes(String gameCode, String playerId, GameObject game) {
         List<Map<String, Object>> votes = murderVotes.getOrDefault(gameCode, List.of());
+        Set<String> submittedVoterIds = new HashSet<>();
         List<Map<String, Object>> others = new ArrayList<>();
         for (Map<String, Object> v : votes) {
             if (!playerId.equals(v.get("voterId"))) {
@@ -333,6 +348,31 @@ public class VotingService {
                 entry.put("voterName", v.get("voterName"));
                 entry.put("targetIds", v.get("targetIds"));
                 entry.put("targetNames", v.get("targetNames"));
+                entry.put("submitted", true);
+                others.add(entry);
+                submittedVoterIds.add((String) v.get("voterId"));
+            }
+        }
+        // Include live (not yet submitted) selections from UserSelectionsState for other traitors
+        for (Player p : game.getPlayerList()) {
+            if (!p.isTraitor() || p.isDead() || p.getId().equals(playerId)
+                    || p.getStatus() != PlayerStatusEnum.ACTIVE) continue;
+            if (submittedVoterIds.contains(p.getId())) continue;
+            UserSelectionsState sel = game.getSelectionState(p.getId());
+            if (sel != null && !sel.getSelectedItems().isEmpty()) {
+                List<String> targetIds = new ArrayList<>(sel.getSelectedItems());
+                List<String> targetNames = targetIds.stream()
+                        .map(tid -> {
+                            Player t = game.findPlayerById(tid);
+                            return t != null ? t.getName() : tid;
+                        })
+                        .toList();
+                Map<String, Object> entry = new HashMap<>();
+                entry.put("voterId", p.getId());
+                entry.put("voterName", p.getName());
+                entry.put("targetIds", targetIds);
+                entry.put("targetNames", targetNames);
+                entry.put("submitted", false);
                 others.add(entry);
             }
         }

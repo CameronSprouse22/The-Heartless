@@ -206,26 +206,6 @@ public class VoteController {
         }
     }
 
-    @PostMapping("/games/{gameCode}/reveal/close")
-    public ResponseEntity<Map<String, Object>> closeReveal(
-            @PathVariable String gameCode,
-            @RequestHeader("X-Player-Code") String playerCode) {
-        String playerId = gameService.getPlayerId(playerCode);
-        if (playerId == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
-        }
-        GameObject game = gameStore.getGame(gameCode);
-        if (game == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Game not found"));
-        }
-        UserSelectionsState selState = game.getSelectionState(playerId);
-        if (selState == null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "No active reveal event"));
-        }
-        selState.setSubmitPressed(true);
-        return ResponseEntity.ok(Map.of("closed", true));
-    }
-
     @PostMapping("/games/{gameCode}/vote/murder")
     @SuppressWarnings("unchecked")
     public ResponseEntity<Map<String, Object>> castMurderVote(

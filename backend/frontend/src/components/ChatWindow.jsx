@@ -1,26 +1,31 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getChatMessages, sendChatMessage } from '../services/api';
 
-function ChatWindow({ gameCode, playerCode, channel, recipientId, cardImageUrl }) {
+function ChatWindow({ gameCode, playerCode, channel, recipientId, cardImageUrl, onReady, readyDone }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
-  const lastTimestamp = messages.length > 0 ? messages[messages.length - 1].timestamp : null;
+  // Use a ref for lastTimestamp so loadMessages stays stable (no interval churn)
+  const lastTimestampRef = useRef(null);
+  const inputRef = useRef(null);
 
   const loadMessages = useCallback(async () => {
     try {
-      const result = await getChatMessages(gameCode, playerCode, channel, lastTimestamp);
+      const result = await getChatMessages(gameCode, playerCode, channel, lastTimestampRef.current);
       if (result.messages && result.messages.length > 0) {
         setMessages(prev => {
           const existingIds = new Set(prev.map(m => m.messageId));
           const newMsgs = result.messages.filter(m => !existingIds.has(m.messageId));
-          return [...prev, ...newMsgs];
+          if (newMsgs.length === 0) return prev;
+          const next = [...prev, ...newMsgs];
+          lastTimestampRef.current = next[next.length - 1].timestamp;
+          return next;
         });
       }
     } catch (err) {
       // Silently ignore polling errors
     }
-  }, [gameCode, playerCode, channel, lastTimestamp]);
+  }, [gameCode, playerCode, channel]);
 
   useEffect(() => {
     loadMessages();
@@ -75,19 +80,47 @@ function ChatWindow({ gameCode, playerCode, channel, recipientId, cardImageUrl }
 
       <form onSubmit={handleSend} style={{
         display: 'flex',
+        alignItems: 'center',
         padding: '0.5rem',
         borderTop: '1px solid #333',
         background: '#111',
+        gap: '0.4rem',
       }}>
+        {onReady && (
+          <button
+            type="button"
+            onClick={onReady}
+            disabled={readyDone}
+            style={{
+              padding: '0.45rem 0.9rem',
+              background: readyDone ? '#2e7d32' : '#43a047',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: readyDone ? 'default' : 'pointer',
+              whiteSpace: 'nowrap',
+              opacity: readyDone ? 0.8 : 1,
+            }}
+          >
+            {readyDone ? '✓ Ready' : 'Ready'}
+          </button>
+        )}
         <input
+          ref={inputRef}
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onBlur={() => {
+            // Re-focus after a tick so blur from polling re-renders doesn't steal focus
+            setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 0);
+          }}
           placeholder="Type a message..."
           maxLength={500}
-          style={{ flex: 1, padding: '0.5rem', marginRight: '0.5rem', background: '#2a2a2a', color: '#e0e0e0', border: '1px solid #444', borderRadius: '4px' }}
+          style={{ flex: 1, padding: '0.5rem', background: '#2a2a2a', color: '#e0e0e0', border: '1px solid #444', borderRadius: '4px' }}
         />
-        <button type="submit" style={{ padding: '0.5rem 1rem', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Send</button>
+        <button type="submit" style={{ padding: '0.5rem 1rem', background: '#1565C0', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Send</button>
       </form>
 
       {error && <p style={{ color: 'red', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>{error}</p>}

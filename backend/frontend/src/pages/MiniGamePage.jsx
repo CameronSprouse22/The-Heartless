@@ -73,6 +73,25 @@ export default function MiniGamePage({ onClose }) {
     }
   };
 
+  // ── Derived state (must be computed before all hooks) ─────────────────────
+  const totalQuestions  = data?.totalQuestions ?? 0;
+  const currentIdx      = myAnswersRef.current.length;
+  // Guard: myDone is only true when data has actually loaded (avoids 0 >= 0 being true on null data)
+  const myDone          = data != null && (data.myDone || currentIdx >= totalQuestions);
+  const completedCount  = data?.completedCount ?? 0;
+  const requiredCount   = data?.requiredCount ?? 0;
+  const isTraitor       = data?.isTraitor ?? false;
+  const question        = data?.question;   // null when player is done
+  const options         = question?.options ?? [];
+
+  // Traitors auto-close back to menu as soon as they finish the mini game
+  // MUST be above any early returns to satisfy React rules of hooks
+  useEffect(() => {
+    if (myDone && isTraitor) {
+      onClose?.();
+    }
+  }, [myDone, isTraitor, onClose]);
+
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading && !data) {
     return (
@@ -89,15 +108,6 @@ export default function MiniGamePage({ onClose }) {
       </div>
     );
   }
-
-  const totalQuestions  = data?.totalQuestions ?? 0;
-  const currentIdx      = myAnswersRef.current.length;
-  const myDone          = data?.myDone || currentIdx >= totalQuestions;
-  const completedCount  = data?.completedCount ?? 0;
-  const requiredCount   = data?.requiredCount ?? 0;
-  const isTraitor       = data?.isTraitor ?? false;
-  const question        = data?.question;   // null when player is done
-  const options         = question?.options ?? [];
 
   // ── Waiting screen (all questions answered) ────────────────────────────────
   if (myDone) {

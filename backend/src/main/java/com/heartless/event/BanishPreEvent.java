@@ -4,7 +4,9 @@ import com.heartless.config.GameConfigurations;
 import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
 import com.heartless.model.MenuControl;
+import com.heartless.model.Player;
 import com.heartless.model.UserSelectionsState;
+import com.heartless.model.enums.PlayerStatusEnum;
 
 import java.util.ArrayList;
 
@@ -24,7 +26,23 @@ public class BanishPreEvent implements EventObjectInterface {
     }
 
     @Override
-    public boolean endConditonsMeet(GameObject gameObject) { return false; }
+    public void onStart() {
+        // Initialise a selection state for every active player so Ready can be tracked
+        game.initSelectionStates(
+                game.getPlayerList().stream()
+                        .filter(p -> !p.isDead() && p.getStatus() == PlayerStatusEnum.ACTIVE)
+                        .map(Player::getId)
+                        .toList()
+        );
+    }
+
+    @Override
+    public boolean endConditonsMeet(GameObject gameObject) {
+        // End early when every active player has pressed Ready
+        java.util.Map<String, UserSelectionsState> states = game.getSelectionStateMap();
+        if (states == null || states.isEmpty()) return false;
+        return states.values().stream().allMatch(UserSelectionsState::isSubmitPressed);
+    }
 
     @Override
     public ArrayList<UserSelectionsState> getUsersSelections() {

@@ -224,6 +224,14 @@ public class GameObject {
     }
 
     /**
+     * Resets the selection state for a single player without affecting other players.
+     * Used when a player transitions between phases (e.g. mini game → murder vote).
+     */
+    public void resetSelectionState(String playerId) {
+        selectionStateMap.put(playerId, new UserSelectionsState());
+    }
+
+    /**
      * Returns the {@link UserSelectionsState} for the given player,
      * or {@code null} if the player has no entry (state not initialised).
      *

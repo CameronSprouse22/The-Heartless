@@ -267,11 +267,13 @@ public class GameController {
     }
 
     /**
-     * Records the calling player's acknowledgement of the situation report.
-     * When every active player has confirmed, the event ends early.
+     * Generic "player is ready to move on" endpoint, used by every event phase
+     * that ends when all players acknowledge (sitrep, role reveal, banish pre,
+     * vote reveal, etc.).  Simply sets submitPressed=true for the calling player
+     * on whatever selection state is currently active.
      */
-    @PostMapping("/games/{gameCode}/sitrep/confirm")
-    public ResponseEntity<Map<String, Object>> confirmSitRep(
+    @PostMapping("/games/{gameCode}/event/ready")
+    public ResponseEntity<Map<String, Object>> markEventReady(
             @PathVariable String gameCode,
             @RequestHeader("X-Player-Code") String playerCode) {
         String playerId = gameService.getPlayerId(playerCode);
@@ -285,13 +287,13 @@ public class GameController {
             }
             UserSelectionsState state = game.getSelectionState(playerId);
             if (state == null) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "No sitrep active"));
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "No active event state"));
             }
             state.setSubmitPressed(true);
-            long confirmedCount = game.getSelectionStateMap().values().stream()
+            long readyCount = game.getSelectionStateMap().values().stream()
                     .filter(UserSelectionsState::isSubmitPressed).count();
             long totalCount = game.getSelectionStateMap().size();
-            return ResponseEntity.ok(Map.of("confirmed", true, "confirmedCount", confirmedCount, "totalCount", totalCount));
+            return ResponseEntity.ok(Map.of("ready", true, "readyCount", readyCount, "totalCount", totalCount));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
@@ -457,30 +459,6 @@ public class GameController {
                 result.put("eventEndTime", thread.getCurrentEvent().getEventEndTime());
             }
             return ResponseEntity.ok(result);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @PostMapping("/games/{gameCode}/role-reveal/confirm")
-    public ResponseEntity<Map<String, Object>> confirmRoleReveal(
-            @PathVariable String gameCode,
-            @RequestHeader("X-Player-Code") String playerCode) {
-        String playerId = gameService.getPlayerId(playerCode);
-        if (playerId == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Invalid player code"));
-        }
-        try {
-            GameObject game = gameService.getGameOrThrow(gameCode);
-            if (game.findPlayerById(playerId) == null) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
-            }
-            UserSelectionsState state = game.getSelectionState(playerId);
-            if (state == null) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "No role reveal active"));
-            }
-            state.setSubmitPressed(true);
-            return ResponseEntity.ok(Map.of("confirmed", true));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }

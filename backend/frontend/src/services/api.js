@@ -81,8 +81,8 @@ export function getSitRep(gameCode, playerCode) {
   });
 }
 
-export function confirmSitRep(gameCode, playerCode) {
-  return fetchJson(`/games/${gameCode}/sitrep/confirm`, {
+export function markEventReady(gameCode, playerCode) {
+  return fetchJson(`/games/${gameCode}/event/ready`, {
     method: 'POST',
     headers: authHeader(playerCode),
   });
@@ -238,13 +238,6 @@ export function getRevealedVotes(gameCode, playerCode) {
   });
 }
 
-export function closeReveal(gameCode, playerCode) {
-  return fetchJson(`/games/${gameCode}/reveal/close`, {
-    method: 'POST',
-    headers: authHeader(playerCode),
-  });
-}
-
 // Identity Reveal
 export function getIdentityReveal(gameCode, playerCode) {
   return fetchJson(`/games/${gameCode}/identity-reveal`, {
@@ -274,9 +267,4 @@ export function submitMiniGameAnswer(gameCode, playerCode, selectedOption) {
   });
 }
 
-export function confirmRoleReveal(gameCode, playerCode) {
-  return fetchJson(`/games/${gameCode}/role-reveal/confirm`, {
-    method: 'POST',
-    headers: authHeader(playerCode),
-  });
-}
+

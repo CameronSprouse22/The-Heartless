@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { getSitRep, confirmSitRep } from '../services/api';
+import { getSitRep, markEventReady } from '../services/api';
 
 // ── Life-status helpers ─────────────────────────────────────────────────────
 
@@ -97,7 +97,7 @@ export default function SitRepPage({ onClose }) {
     setConfirming(true);
     setConfirmError('');
     try {
-      await confirmSitRep(gameCode, playerCode);
+      await markEventReady(gameCode, playerCode);
       await load();
     } catch (err) {
       setConfirmError(err.message || 'Failed to confirm');
@@ -157,23 +157,6 @@ export default function SitRepPage({ onClose }) {
         marginBottom: '1rem',
       }}>
         <h2 style={{ margin: 0, fontSize: '1.3rem' }}>📋 Situation Report</h2>
-        {onClose && (
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '1.4rem',
-              cursor: 'pointer',
-              color: '#888',
-              lineHeight: 1,
-              padding: '0 0.25rem',
-            }}
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        )}
       </div>
 
       {/* Round + summary pill */}

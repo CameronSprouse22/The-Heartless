@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { markEventReady } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMenu, getPlayerInfo, resolvePlayer, getChatCounts, dismissInitialMessage } from '../services/api';
 import GameStatusBar from '../components/GameStatusBar';
@@ -40,9 +41,16 @@ function MenuPage() {
   const [initialMessage, setInitialMessage] = useState('');
   const dismissedEventEndTimeRef = useRef(null);
   const [activePanel, setActivePanel] = useState(null);
+  const [panelTab, setPanelTab] = useState('event');
   // Track which eventEndTime we've already auto-navigated for (persisted across remounts)
   const getAutoNavDone = () => Number(sessionStorage.getItem('autoNavDoneEventEndTime') || 0);
   const setAutoNavDone = (t) => sessionStorage.setItem('autoNavDoneEventEndTime', String(t));
+
+  const PANEL_TABS = [
+    { id: 'event',  label: 'Event',  color: '#2e7d32' },
+    { id: 'chat',   label: 'Chat',   color: '#e65100' },
+    { id: 'status', label: 'Status', color: '#37474f' },
+  ];
 
   // Register this browser for Web Push so notifications arrive even when the tab is closed
   const { permissionState, enableNotifications } = useNotifications(playerCode, gameCode);
@@ -89,11 +97,24 @@ function MenuPage() {
         setShowInitialMessage(false);
       }
 
-      // Auto-navigate when exactly one server-controlled item is enabled
+      // Auto-navigate traitors straight to the murder-vote panel whenever it's active
       const enabledItems = (menuData.menuItems || []).filter(i => i.enabled && i.visible);
       const currentEndTime = menuData.eventEndTime || 0;
       const PANEL_IDS = ['banish-vote', 'murder-vote', 'reveal', 'identity-reveal', 'role-reveal', 'all-chat', 'traitor-chat', 'individual-chat', 'dead-chat', 'sitrep', 'mini-game'];
-      if (enabledItems.length === 1 && currentEndTime && getAutoNavDone() !== currentEndTime) {
+      const murderVoteActive = enabledItems.some(i => i.id === 'murder-vote');
+      console.log('[MenuPage] loadMenu result:', {
+        isTraitor: menuData.isTraitor,
+        eventEndTime: currentEndTime,
+        autoNavDone: getAutoNavDone(),
+        murderVoteActive,
+        enabledItems: enabledItems.map(i => i.id),
+        activePanel,
+      });
+      if (murderVoteActive && menuData.isTraitor && currentEndTime && getAutoNavDone() !== currentEndTime) {
+        console.log('[MenuPage] Auto-navigating traitor to murder-vote panel');
+        setAutoNavDone(currentEndTime);
+        setActivePanel('murder-vote');
+      } else if (enabledItems.length === 1 && currentEndTime && getAutoNavDone() !== currentEndTime) {
         const navId = enabledItems[0].id;
         if (PANEL_IDS.includes(navId)) {
           setAutoNavDone(currentEndTime);
@@ -133,7 +154,7 @@ function MenuPage() {
 
   useEffect(() => {
     loadMenu();
-    const refresh = setInterval(loadMenu, 5000);
+    const refresh = setInterval(loadMenu, 2000);
     return () => clearInterval(refresh);
   }, [loadMenu]);
 
@@ -150,6 +171,11 @@ function MenuPage() {
     const interval = setInterval(loadChatCounts, 3000);
     return () => clearInterval(interval);
   }, [loadChatCounts]);
+
+  // Reset to the Event tab whenever a new panel opens
+  useEffect(() => {
+    if (activePanel) setPanelTab('event');
+  }, [activePanel]);
 
   // Update lastSeen when navigating to a chat
   const markChannelSeen = (channelKey) => {
@@ -363,7 +389,7 @@ function MenuPage() {
       {error && <p style={{ color: 'red', padding: '1rem' }}>{error}</p>}
 
       {activePanel && (
-        <div style={{ position: 'fixed', inset: 0, background: '#121212', zIndex: 100, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', inset: 0, background: '#121212', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
           <GameStatusBar
             gameStatus={menu?.statusString || menu?.gameStatus}
             round={menu?.round}
@@ -371,19 +397,53 @@ function MenuPage() {
             playersRemaining={menu?.playersRemaining}
             eventType={menu?.eventType}
             timeLeftMs={timeLeftMs}
+            tabs={PANEL_TABS}
+            activeTab={panelTab}
+            onTabChange={(id) => setPanelTab(id)}
           />
-          <div style={{ flex: 1, overflow: 'auto' }}>
-            {activePanel === 'banish-vote' && <BanishVotePage onClose={() => setActivePanel(null)} />}
-            {activePanel === 'murder-vote' && <MurderVotePage onClose={() => setActivePanel(null)} />}
-            {activePanel === 'reveal' && <BanishRevealPage onClose={() => setActivePanel(null)} />}
-            {activePanel === 'identity-reveal' && <IdentityRevealPage onClose={() => setActivePanel(null)} />}
-            {activePanel === 'role-reveal' && <RoleRevealPage onClose={() => setActivePanel(null)} />}
-            {activePanel === 'all-chat' && <AllChatPage onClose={() => setActivePanel(null)} />}
-            {activePanel === 'traitor-chat' && <TraitorChatPage onClose={() => setActivePanel(null)} />}
-            {activePanel === 'individual-chat' && <IndividualChatPage onClose={() => setActivePanel(null)} />}
-            {activePanel === 'dead-chat' && <DeadChatPage onClose={() => setActivePanel(null)} />}
-            {activePanel === 'sitrep' && <SitRepPage onClose={() => setActivePanel(null)} />}
-            {activePanel === 'mini-game' && <MiniGamePage onClose={() => setActivePanel(null)} />}
+          <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+            {/* Event tab — current active panel */}
+            {panelTab === 'event' && (
+              <>
+                {activePanel === 'banish-vote' && <BanishVotePage onClose={() => setActivePanel(null)} />}
+                {activePanel === 'murder-vote' && <MurderVotePage onClose={() => setActivePanel(null)} />}
+                {activePanel === 'reveal' && <BanishRevealPage onClose={() => setActivePanel(null)} />}
+                {activePanel === 'identity-reveal' && <IdentityRevealPage onClose={() => setActivePanel(null)} />}
+                {activePanel === 'role-reveal' && <RoleRevealPage onClose={() => setActivePanel(null)} />}
+                {activePanel === 'all-chat' && (
+                  <AllChatPage
+                    onClose={() => setActivePanel(null)}
+                    onReady={menu?.eventType === 'Banish Pre' ? async () => {
+                      await markEventReady(gameCode, playerCode).catch(() => {});
+                      await loadMenu();
+                    } : undefined}
+                    readyDone={menu?.eventType === 'Banish Pre' && menu?.mySelection?.submitPressed === true}
+                  />
+                )}
+                {activePanel === 'traitor-chat' && <TraitorChatPage onClose={() => setActivePanel(null)} />}
+                {activePanel === 'individual-chat' && <IndividualChatPage onClose={() => setActivePanel(null)} />}
+                {activePanel === 'dead-chat' && <DeadChatPage onClose={() => setActivePanel(null)} />}
+                {activePanel === 'sitrep' && <SitRepPage onClose={() => setActivePanel(null)} />}
+                {activePanel === 'mini-game' && <MiniGamePage onClose={() => setActivePanel(null)} />}
+              </>
+            )}
+
+            {/* Chat tab — traitor chat for traitors, all chat otherwise */}
+            {panelTab === 'chat' && (
+              menu?.isTraitor
+                ? <TraitorChatPage onClose={() => setActivePanel(null)} />
+                : <AllChatPage
+                    onClose={() => setActivePanel(null)}
+                    onReady={menu?.eventType === 'Banish Pre' ? async () => {
+                      await markEventReady(gameCode, playerCode).catch(() => {});
+                      await loadMenu();
+                    } : undefined}
+                    readyDone={menu?.eventType === 'Banish Pre' && menu?.mySelection?.submitPressed === true}
+                  />
+            )}
+
+            {/* Status tab — situation report */}
+            {panelTab === 'status' && <SitRepPage onClose={() => setActivePanel(null)} />}
           </div>
         </div>
       )}

@@ -9,24 +9,45 @@ function formatTime(ms) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-function GameStatusBar({ gameStatus, round, playerName, playersRemaining, eventType, timeLeftMs, backPath }) {
+function GameStatusBar({ gameStatus, round, playerName, playersRemaining, eventType, timeLeftMs, backPath, tabs, activeTab, onTabChange }) {
   const navigate = useNavigate();
 
   return (
     <div style={{
       background: '#111',
       color: 'white',
-      padding: '0.5rem 1rem',
+      padding: '0.35rem 0.75rem',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
       fontSize: '0.85rem',
       borderBottom: '1px solid #333',
       flexShrink: 0,
+      gap: '0.5rem',
     }}>
-      {/* Left: back button or player name */}
-      <div style={{ minWidth: '80px' }}>
-        {backPath ? (
+      {/* Left: tabs OR back button OR player name */}
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
+        {tabs ? (
+          tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange && onTabChange(tab.id)}
+              style={{
+                padding: '0.2rem 0.55rem',
+                background: activeTab === tab.id ? tab.color : `${tab.color}55`,
+                color: 'white',
+                border: `1.5px solid ${tab.color}`,
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.72rem',
+                fontWeight: activeTab === tab.id ? 700 : 400,
+                opacity: activeTab === tab.id ? 1 : 0.75,
+                letterSpacing: '0.02em',
+                transition: 'background 0.12s, opacity 0.12s',
+              }}
+            >{tab.label}</button>
+          ))
+        ) : backPath ? (
           <button
             onClick={() => navigate(backPath)}
             style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}

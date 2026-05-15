@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { getRevealedVotes, closeReveal } from '../services/api';
+import { getRevealedVotes, markEventReady } from '../services/api';
 
 // --- Slot Machine Component ---
 function SlotMachine({ candidates, pickedName, onDone }) {
@@ -266,7 +266,7 @@ function BanishRevealPage({ onClose }) {
             disabled={!canClose || confirming}
             onClick={async () => {
               setConfirming(true);
-              try { await closeReveal(gameCode, playerCode); setMyConfirmed(true); } catch { /* ignore */ }
+              try { await markEventReady(gameCode, playerCode); setMyConfirmed(true); } catch { /* ignore */ }
               setConfirming(false);
             }}
             style={{

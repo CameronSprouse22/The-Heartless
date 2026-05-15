@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { getRoleReveal, confirmRoleReveal } from '../services/api';
+import { getRoleReveal, markEventReady } from '../services/api';
 
 // ─── Inject keyframe animations once ──────────────────────────────────────────
 const STYLE_ID = 'role-reveal-styles';
@@ -155,7 +155,7 @@ export default function RoleRevealPage({ onClose }) {
   const handleConfirm = async () => {
     if (confirmed) return;
     try {
-      await confirmRoleReveal(gameCode, playerCode);
+      await markEventReady(gameCode, playerCode);
       setConfirmed(true);
       setPhase('confirmed');
     } catch (err) {

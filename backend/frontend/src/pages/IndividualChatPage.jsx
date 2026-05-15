@@ -25,9 +25,6 @@ function IndividualChatPage({ onClose }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ padding: '0.4rem 1rem', background: '#2a1a3a', color: '#CE93D8', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        {onClose && (
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#CE93D8', cursor: 'pointer', fontSize: '1rem', padding: 0 }}>← Back</button>
-        )}
         Individual Chat
       </div>
 
