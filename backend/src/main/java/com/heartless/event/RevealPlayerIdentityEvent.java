@@ -69,6 +69,7 @@ public class RevealPlayerIdentityEvent implements EventObjectInterface {
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setIdentityRevealEnabled(true);
+        mc.setCurrentPage("identity-reveal");
         return GameState.fromEvent(mc, game, this);
     }
 

@@ -10,6 +10,7 @@ import com.heartless.model.enums.PlayerStatusEnum;
 import com.heartless.service.VotingService;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -161,13 +162,16 @@ public class MurderVoteEvent implements EventObjectInterface {
         if (!player.isTraitor()) {
             // Faithful players only see the mini game for the full duration
             mc.setMiniGameEnabled(true);
+            mc.setCurrentPage("mini-game");
         } else if (miniGameCompletedPlayerIds.contains(player.getId())) {
             // Traitor has finished the mini game — show the murder vote
             mc.setMurderVoteEnabled(true);
             mc.setTraitorChatEnabled(true);
+            mc.setCurrentPage("murder-vote");
         } else {
             // Traitor has not yet finished the mini game
             mc.setMiniGameEnabled(true);
+            mc.setCurrentPage("mini-game");
         }
         return GameState.fromEvent(mc, game, this);
     }
@@ -178,6 +182,7 @@ public class MurderVoteEvent implements EventObjectInterface {
         MenuControl mc = new MenuControl();
         mc.setMurderVoteEnabled(true);
         mc.setTraitorChatEnabled(true);
+        mc.setCurrentPage("murder-vote");
         return GameState.fromEvent(mc, game, this);
     }
 

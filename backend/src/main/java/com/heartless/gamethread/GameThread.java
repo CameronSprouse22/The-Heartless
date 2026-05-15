@@ -338,6 +338,7 @@ public class GameThread {
                 MenuControl mc = new MenuControl();
                 mc.setMurderVoteEnabled(true);
                 mc.setTraitorChatEnabled(true);
+                mc.setCurrentPage("murder-vote");
                 return GameState.fromEvent(mc, gameObject, mv);
             }
         }

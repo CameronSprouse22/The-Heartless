@@ -84,14 +84,6 @@ export default function MiniGamePage({ onClose }) {
   const question        = data?.question;   // null when player is done
   const options         = question?.options ?? [];
 
-  // Traitors auto-close back to menu as soon as they finish the mini game
-  // MUST be above any early returns to satisfy React rules of hooks
-  useEffect(() => {
-    if (myDone && isTraitor) {
-      onClose?.();
-    }
-  }, [myDone, isTraitor, onClose]);
-
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading && !data) {
     return (

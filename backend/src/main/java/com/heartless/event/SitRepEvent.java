@@ -64,6 +64,7 @@ public class SitRepEvent implements EventObjectInterface {
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setSitRepEnabled(true);
+        mc.setCurrentPage("sitrep");
         return GameState.fromEvent(mc, game, this);
     }
 

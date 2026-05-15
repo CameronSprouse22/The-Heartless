@@ -224,6 +224,17 @@ public class VotingService {
                 .orElse(List.of());
         result.put("existingVotes", existingVotes);
         result.put("othersVotes", getOtherMurderVotes(gameCode, playerId, game));
+
+        // Return the player's current in-progress selection (not yet submitted) so the
+        // frontend can restore it after navigating away and coming back.
+        if (existingVotes.isEmpty()) {
+            UserSelectionsState selState = game.getSelectionState(playerId);
+            List<String> currentSelection = (selState != null && !selState.isSubmitPressed())
+                    ? new ArrayList<>(selState.getSelectedItems()) : List.of();
+            result.put("currentSelection", currentSelection);
+        } else {
+            result.put("currentSelection", List.of());
+        }
         return result;
     }
 
@@ -276,6 +287,31 @@ public class VotingService {
         UserSelectionsState selState = game.getSelectionState(voterId);
         if (selState != null) { selState.setSubmitPressed(true); }
 
+        // Cascade: auto-submit all other active traitors with the same target choice.
+        // (The UI only lets you submit once all traitors agree, so targetIds is the consensus pick.)
+        List<String> cascadedVoterIds = new ArrayList<>();
+        for (Player p : game.getPlayerList()) {
+            if (p.isTraitor() && !p.isDead()
+                    && p.getStatus() == PlayerStatusEnum.ACTIVE
+                    && !p.getId().equals(voterId)) {
+                boolean alreadyVotedOther = votes.stream().anyMatch(v -> p.getId().equals(v.get("voterId")));
+                if (!alreadyVotedOther) {
+                    Map<String, Object> cascadeRecord = new HashMap<>();
+                    cascadeRecord.put("voterId", p.getId());
+                    cascadeRecord.put("voterName", p.getName());
+                    cascadeRecord.put("targetIds", targetIds);
+                    cascadeRecord.put("targetNames", targetNames);
+                    votes.add(cascadeRecord);
+                    UserSelectionsState cs = game.getSelectionState(p.getId());
+                    if (cs != null) {
+                        cs.setSelectedItems(new ArrayList<>(targetIds));
+                        cs.setSubmitPressed(true);
+                    }
+                    cascadedVoterIds.add(p.getId());
+                }
+            }
+        }
+
         // Broadcast to other traitors via WebSocket
         if (messagingTemplate != null) {
             Map<String, Object> broadcast = new HashMap<>();
@@ -284,6 +320,10 @@ public class VotingService {
             broadcast.put("voterName", voter.getName());
             broadcast.put("targetIds", targetIds);
             broadcast.put("targetNames", targetNames);
+            broadcast.put("submitted", true);
+            // Include the list of cascade-submitted traitor IDs so every client can update
+            broadcast.put("allSubmitted", true);
+            broadcast.put("cascadedVoterIds", cascadedVoterIds);
             messagingTemplate.convertAndSend("/topic/games/" + gameCode + "/murder-vote", broadcast);
         }
 

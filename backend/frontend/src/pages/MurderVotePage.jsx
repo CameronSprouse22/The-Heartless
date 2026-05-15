@@ -45,8 +45,12 @@ function MurderVotePage({ onClose }) {
           setCandidates(res.candidates || []);
           if (res.coTraitors) setCoTraitors(res.coTraitors);
           if (res.existingVotes && res.existingVotes.length > 0) {
+            // Already fully submitted
             setSelected(res.existingVotes[0]);
             setSubmitted(true);
+          } else if (res.currentSelection && res.currentSelection.length > 0) {
+            // In-progress selection from before the player navigated away
+            setSelected(res.currentSelection[0]);
           }
           (res.othersVotes || []).forEach(v =>
             updateOtherPlayer(v.voterId, v.voterName, v.targetIds || [], v.targetNames || [], v.submitted !== false)
@@ -72,6 +76,11 @@ function MurderVotePage({ onClose }) {
             msg.targetNames || [],
             msg.type === 'MURDER_VOTE_UPDATE'
           );
+          // If a cascade-submit happened, mark this player as submitted too
+          if (msg.allSubmitted && msg.targetIds && msg.targetIds.length > 0) {
+            setSelected(msg.targetIds[0]);
+            setSubmitted(true);
+          }
         }
       });
     }, (err) => console.error('WebSocket error:', err));

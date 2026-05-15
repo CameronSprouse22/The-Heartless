@@ -35,6 +35,7 @@ public class VoteRevealEvent implements EventObjectInterface {
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setRevealEnabled(true);
+        mc.setCurrentPage("reveal");
         return GameState.fromEvent(mc, game, this);
     }
 

@@ -147,6 +147,8 @@ public class GameController {
             }
             Map<String, Object> stateMap = gameState.toMap();
             stateMap.put("playersRemaining", game.getActivePlayerCount());
+            stateMap.put("isTraitor", player.isTraitor());
+            stateMap.put("playerName", player.getName());
             if (gameThread != null && gameThread.getCurrentEvent() != null) {
                 String initialMsg = GameConfigurations.SHOW_EVENT_DIALOGS
                         ? gameThread.getCurrentEvent().getInitialMessage() : "";

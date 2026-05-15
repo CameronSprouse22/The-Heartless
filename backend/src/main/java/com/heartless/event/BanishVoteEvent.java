@@ -80,6 +80,7 @@ public class BanishVoteEvent implements EventObjectInterface {
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setBanishVoteEnabled(true);
+        mc.setCurrentPage("banish-vote");
         return GameState.fromEvent(mc, game, this);
     }
 

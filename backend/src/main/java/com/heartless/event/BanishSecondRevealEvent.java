@@ -123,6 +123,7 @@ public class BanishSecondRevealEvent implements EventObjectInterface {
         MenuControl mc = new MenuControl();
         mc.setRevealEnabled(true);
         mc.setCloseEnabled(true);
+        mc.setCurrentPage("reveal");
         return GameState.fromEvent(mc, game, this);
     }
 

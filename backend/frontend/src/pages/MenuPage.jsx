@@ -97,39 +97,36 @@ function MenuPage() {
         setShowInitialMessage(false);
       }
 
-      // Auto-navigate traitors straight to the murder-vote panel whenever it's active
-      const enabledItems = (menuData.menuItems || []).filter(i => i.enabled && i.visible);
+      // Let the server event drive which panel is active.
+      // currentPage is set by the Java event object's getGameState() and takes
+      // precedence over everything. We only switch when the server says a new
+      // event has started (eventEndTime key changed) to avoid overriding the
+      // user if they manually opened a different panel within the same event.
       const currentEndTime = menuData.eventEndTime || 0;
+      const serverPage = menuData.currentPage || null;
       const PANEL_IDS = ['banish-vote', 'murder-vote', 'reveal', 'identity-reveal', 'role-reveal', 'all-chat', 'traitor-chat', 'individual-chat', 'dead-chat', 'sitrep', 'mini-game'];
-      const murderVoteActive = enabledItems.some(i => i.id === 'murder-vote');
-      console.log('[MenuPage] loadMenu result:', {
-        isTraitor: menuData.isTraitor,
-        eventEndTime: currentEndTime,
-        autoNavDone: getAutoNavDone(),
-        murderVoteActive,
-        enabledItems: enabledItems.map(i => i.id),
-        activePanel,
-      });
-      if (murderVoteActive && menuData.isTraitor && currentEndTime && getAutoNavDone() !== currentEndTime) {
-        console.log('[MenuPage] Auto-navigating traitor to murder-vote panel');
+      const NAV_IDS = { actions: true, 'game-options': true, 'game-logs': true };
+
+      if (serverPage && currentEndTime && getAutoNavDone() !== currentEndTime) {
         setAutoNavDone(currentEndTime);
-        setActivePanel('murder-vote');
-      } else if (enabledItems.length === 1 && currentEndTime && getAutoNavDone() !== currentEndTime) {
-        const navId = enabledItems[0].id;
-        if (PANEL_IDS.includes(navId)) {
-          setAutoNavDone(currentEndTime);
-          setActivePanel(navId);
-        } else {
-          setAutoNavDone(currentEndTime);
+        if (PANEL_IDS.includes(serverPage)) {
+          setActivePanel(serverPage);
+        } else if (NAV_IDS[serverPage]) {
+          const navPaths = {
+            'actions':      `/actions/${gameCode}`,
+            'game-options': `/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`,
+            'game-logs':    `/logs/${gameCode}`,
+          };
           sessionStorage.setItem('autoNavEventEndTime', String(currentEndTime));
           sessionStorage.setItem('autoNavMenuPath', `/menu/${gameCode}/${encodeURIComponent(playerName)}`);
-          const navPaths = {
-            'actions':         `/actions/${gameCode}`,
-            'game-options':    `/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`,
-            'game-logs':       `/logs/${gameCode}`,
-          };
-          const dest = navPaths[navId];
+          const dest = navPaths[serverPage];
           if (dest) { navigate(dest); return; }
+        }
+      } else if (serverPage && currentEndTime && getAutoNavDone() === currentEndTime) {
+        // Same event, but server page changed (e.g. traitor finished mini-game mid-event).
+        // Always sync to the server-directed page so the panel updates immediately.
+        if (PANEL_IDS.includes(serverPage)) {
+          setActivePanel(serverPage);
         }
       }
     } catch (err) {      if (err.status === 403) {

@@ -37,6 +37,7 @@ public class RecruitEvent implements EventObjectInterface {
         mc.setTraitorChatEnabled(true);
         mc.setIndividualChatEnabled(true);
         mc.setActionsEnabled(true);
+        mc.setCurrentPage("traitor-chat");
         return GameState.fromEvent(mc, game, this);
     }
 

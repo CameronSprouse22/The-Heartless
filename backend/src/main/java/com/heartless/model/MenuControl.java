@@ -21,6 +21,13 @@ public class MenuControl {
     private boolean roleRevealEnabled;
     private boolean sitRepEnabled;
     private boolean miniGameEnabled;
+    /**
+     * The page/tab the player should currently be viewing.
+     * When non-null the frontend navigates directly to this panel,
+     * bypassing the manual menu. Matches the panel IDs used in MenuPage
+     * (e.g. "mini-game", "murder-vote", "banish-vote", "all-chat", etc.).
+     */
+    private String currentPage;
 
     public MenuControl() {
         // All disabled by default
@@ -38,6 +45,7 @@ public class MenuControl {
         this.roleRevealEnabled = false;
         this.sitRepEnabled = false;
         this.miniGameEnabled = false;
+        this.currentPage = null;
     }
 
     public boolean isTraitorChatEnabled() { return traitorChatEnabled; }
@@ -81,4 +89,7 @@ public class MenuControl {
 
     public boolean isMiniGameEnabled() { return miniGameEnabled; }
     public void setMiniGameEnabled(boolean miniGameEnabled) { this.miniGameEnabled = miniGameEnabled; }
+
+    public String getCurrentPage() { return currentPage; }
+    public void setCurrentPage(String currentPage) { this.currentPage = currentPage; }
 }

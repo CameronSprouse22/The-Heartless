@@ -35,6 +35,7 @@ public class MurderPreEvent implements EventObjectInterface {
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setTraitorChatEnabled(true);
+        mc.setCurrentPage("traitor-chat");
         return GameState.fromEvent(mc, game, this);
     }
 

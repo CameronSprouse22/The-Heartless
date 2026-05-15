@@ -126,6 +126,7 @@ public class MiniGameEvent implements EventObjectInterface {
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setMiniGameEnabled(true);
+        mc.setCurrentPage("mini-game");
         return GameState.fromEvent(mc, game, this);
     }
 
