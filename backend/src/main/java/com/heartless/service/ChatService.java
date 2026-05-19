@@ -42,6 +42,9 @@ public class ChatService {
         if ("individual".equals(channelName) && (recipientId == null || recipientId.isBlank())) {
             throw new IllegalArgumentException("recipientId required for individual channel");
         }
+        if ("individual".equals(channelName) && senderId.equals(recipientId)) {
+            throw new IllegalArgumentException("Cannot send an individual message to yourself");
+        }
 
         channel.sendMessage(text, sender);
 

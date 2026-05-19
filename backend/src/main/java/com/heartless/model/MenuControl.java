@@ -21,6 +21,7 @@ public class MenuControl {
     private boolean roleRevealEnabled;
     private boolean sitRepEnabled;
     private boolean miniGameEnabled;
+    private boolean scuttlebuttEnabled;
 
     public MenuControl() {
         // All disabled by default
@@ -38,6 +39,7 @@ public class MenuControl {
         this.roleRevealEnabled = false;
         this.sitRepEnabled = false;
         this.miniGameEnabled = false;
+        this.scuttlebuttEnabled = false;
     }
 
     public boolean isTraitorChatEnabled() { return traitorChatEnabled; }
@@ -81,4 +83,7 @@ public class MenuControl {
 
     public boolean isMiniGameEnabled() { return miniGameEnabled; }
     public void setMiniGameEnabled(boolean miniGameEnabled) { this.miniGameEnabled = miniGameEnabled; }
+
+    public boolean isScuttlebuttEnabled() { return scuttlebuttEnabled; }
+    public void setScuttlebuttEnabled(boolean scuttlebuttEnabled) { this.scuttlebuttEnabled = scuttlebuttEnabled; }
 }

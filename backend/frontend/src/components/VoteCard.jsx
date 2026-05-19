@@ -19,6 +19,17 @@ function VoteCard({ player, selected, onSelect, voters = [] }) {
       }}
     >
       {player.name}
+      {voters.length > 0 && (
+        <div style={{
+          marginTop: '0.3rem',
+          fontSize: '0.75rem',
+          opacity: 0.85,
+          fontWeight: 'normal',
+          color: selected ? 'rgba(255,255,255,0.9)' : '#555',
+        }}>
+          {voters.map(v => `${v.voterName}${v.submitted ? ' ✓' : ''}`).join(', ')}
+        </div>
+      )}
     </div>
   );
 }

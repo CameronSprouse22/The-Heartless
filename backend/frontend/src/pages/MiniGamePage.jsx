@@ -22,6 +22,12 @@ export default function MiniGamePage({ onClose }) {
   // answers stored locally so we can show them immediately without waiting for a poll
   const myAnswersRef = useRef([]);
 
+  // ── Derived — computed before polling effect to avoid TDZ ─────────────────
+  const totalQuestions  = data?.totalQuestions ?? 0;
+  const currentIdx      = myAnswersRef.current.length;
+  // Guard: myDone is only true when data has actually loaded (avoids 0 >= 0 being true on null data)
+  const myDone          = data != null && (data.myDone || currentIdx >= totalQuestions);
+
   // ── Polling ────────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
     if (!playerCode || !gameCode) return;
@@ -47,9 +53,11 @@ export default function MiniGamePage({ onClose }) {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 3000);
+    // Poll fast (500 ms) once the player is done so the backend promotion is detected quickly;
+    // fall back to 3 s while still answering questions
+    const interval = setInterval(load, myDone ? 500 : 3000);
     return () => clearInterval(interval);
-  }, [load]);
+  }, [load, myDone]);
 
   // ── Answer handler ─────────────────────────────────────────────────────────
   const handleAnswer = async (option) => {
@@ -73,11 +81,7 @@ export default function MiniGamePage({ onClose }) {
     }
   };
 
-  // ── Derived state (must be computed before all hooks) ─────────────────────
-  const totalQuestions  = data?.totalQuestions ?? 0;
-  const currentIdx      = myAnswersRef.current.length;
-  // Guard: myDone is only true when data has actually loaded (avoids 0 >= 0 being true on null data)
-  const myDone          = data != null && (data.myDone || currentIdx >= totalQuestions);
+  // ── Derived state ──────────────────────────────────────────────────────────
   const completedCount  = data?.completedCount ?? 0;
   const requiredCount   = data?.requiredCount ?? 0;
   const isTraitor       = data?.isTraitor ?? false;

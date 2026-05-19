@@ -13,7 +13,8 @@ function IndividualChatPage({ onClose }) {
     async function loadPlayers() {
       try {
         const state = await getGameState(gameCode, playerCode);
-        const alivePlayers = state.players.filter(p => !p.isDead && p.id !== playerCode);
+        const myId = state.myPlayerId || playerCode;
+        const alivePlayers = state.players.filter(p => !p.isDead && p.id !== myId);
         setPlayers(alivePlayers);
       } catch (err) {
         // ignore

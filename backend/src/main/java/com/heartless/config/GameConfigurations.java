@@ -34,6 +34,8 @@ public final class GameConfigurations {
     public static final long REVEAL_ROLE_EVENT_DURATION_MS = HALF_MINUTE_MS;
     /** Duration for the sit-rep event shown at the start of each round. */
     public static final long SITREP_EVENT_DURATION_MS = HALF_MINUTE_MS;
+    /** Duration for the scuttlebutt (individual chat) event. */
+    public static final long SCUTTLEBUTT_EVENT_DURATION_MS = FIVE_MINUTES_MS;
 
     // ── UI toggles ───────────────────────────────────────────────────────────
 

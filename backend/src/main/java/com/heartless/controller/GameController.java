@@ -147,6 +147,7 @@ public class GameController {
             }
             Map<String, Object> stateMap = gameState.toMap();
             stateMap.put("playersRemaining", game.getActivePlayerCount());
+            stateMap.put("isTraitor", player.isTraitor());
             if (gameThread != null && gameThread.getCurrentEvent() != null) {
                 String initialMsg = GameConfigurations.SHOW_EVENT_DIALOGS
                         ? gameThread.getCurrentEvent().getInitialMessage() : "";
@@ -484,7 +485,7 @@ public class GameController {
             if (player == null) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
             }
-            MiniGameEvent miniGame = resolveMiniGameEvent(gameCode);
+            MiniGameEvent miniGame = resolveMiniGameEvent(gameCode, playerId);
             if (miniGame == null) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "No mini game active"));
             }
@@ -519,7 +520,7 @@ public class GameController {
             if (game.findPlayerById(playerId) == null) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Player not in this game"));
             }
-            MiniGameEvent miniGame = resolveMiniGameEvent(gameCode);
+            MiniGameEvent miniGame = resolveMiniGameEvent(gameCode, playerId);
             if (miniGame == null) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "No mini game active"));
             }
@@ -537,13 +538,17 @@ public class GameController {
      * Resolves the active {@link MiniGameEvent} from the current game event chain.
      * Returns {@code null} if there is no active mini game.
      */
-    private MiniGameEvent resolveMiniGameEvent(String gameCode) {
+    private MiniGameEvent resolveMiniGameEvent(String gameCode, String playerId) {
         GameThread thread = gameService.getGameThread(gameCode);
         if (thread == null) return null;
         var evt = thread.getCurrentEvent();
         if (evt instanceof MiniGameEvent mg) return mg;
-        // Mini game is always active for the full duration of MurderVoteEvent now
-        if (evt instanceof MurderVoteEvent mv && mv.getMiniGameEvent() != null) return mv.getMiniGameEvent();
+        // Return null if the player has already been promoted past the cover event
+        // so the endpoint returns 409 and the frontend transitions immediately
+        if (evt instanceof MurderVoteEvent mv && mv.getCoverEvent() instanceof MiniGameEvent mg) {
+            if (playerId != null && mv.hasPlayerCompletedMiniGame(playerId)) return null;
+            return mg;
+        }
         return null;
     }
 
