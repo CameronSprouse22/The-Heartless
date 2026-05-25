@@ -84,6 +84,12 @@ public interface EventObjectInterface {
     default void resolveEvent() {}
 
     /**
+     * Optionally override the computed end time so a nested event shares its parent's countdown.
+     * Default is a no-op — override in events that support timer sharing.
+     */
+    default void setOverrideEndTime(Long endTime) {}
+
+    /**
      * Returns a list of scheduled reveal actions for this event.
      * Each {@link EventAction} has an actionObject (the data to reveal) and an
      * executeTime (epoch ms when it should be shown to the frontend).

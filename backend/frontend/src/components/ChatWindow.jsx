@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getChatMessages, sendChatMessage } from '../services/api';
 
-function ChatWindow({ gameCode, playerCode, channel, recipientId, cardImageUrl, onReady, readyDone }) {
+function ChatWindow({ gameCode, playerCode, channel, recipientId, cardImageUrl, onReady, readyDone, onMessageSent }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
@@ -41,6 +41,7 @@ function ChatWindow({ gameCode, playerCode, channel, recipientId, cardImageUrl, 
       await sendChatMessage(gameCode, playerCode, channel, text.trim(), recipientId);
       setText('');
       await loadMessages();
+      if (onMessageSent && recipientId) onMessageSent(recipientId);
     } catch (err) {
       setError(err.message);
     }
@@ -112,10 +113,6 @@ function ChatWindow({ gameCode, playerCode, channel, recipientId, cardImageUrl, 
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onBlur={() => {
-            // Re-focus after a tick so blur from polling re-renders doesn't steal focus
-            setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 0);
-          }}
           placeholder="Type a message..."
           maxLength={500}
           style={{ flex: 1, padding: '0.5rem', background: '#2a2a2a', color: '#e0e0e0', border: '1px solid #444', borderRadius: '4px' }}

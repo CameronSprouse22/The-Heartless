@@ -4,6 +4,7 @@ import com.heartless.event.AfterLifeGameEvent;
 import com.heartless.event.EventObjectInterface;
 import com.heartless.event.LobbyEvent;
 import com.heartless.event.RevealRoleEvent;
+import com.heartless.event.ScuttlebuttEvent;
 import com.heartless.event.SitRepEvent;
 import com.heartless.event.RevealPlayerIdentityEvent;
 import com.heartless.event.BanishPreEvent;
@@ -128,7 +129,10 @@ public class GameThread {
 
 
             MurderVoteEvent murderEvent = new MurderVoteEvent(gameObject);
-            murderEvent.setMiniGameEvent(new MiniGameEvent(gameObject));
+            ScuttlebuttEvent scuttleEvent = new ScuttlebuttEvent(gameObject);
+
+            murderEvent.setCoverEvent(new MiniGameEvent(gameObject));
+            murderEvent.setFaithfulOnlyEvent(scuttleEvent);
             if (votingService != null) {
                 murderEvent.setVotingService(votingService, gameObject.getGameIdCode());
             }
@@ -322,26 +326,7 @@ public class GameThread {
             log.debug("Player {} is dead — returning AfterLifeGameEvent state", player.getName());
             return new AfterLifeGameEvent(gameObject).getGameState();
         }
-        // Per-player routing for MurderVoteEvent:
-        // - Faithful always see the mini game
-        // - Traitors see the mini game until they submit it, then auto-nav to murder vote
-        if (currentEvent instanceof MurderVoteEvent mv) {
-            if (!player.isTraitor() || !mv.hasPlayerCompletedMiniGame(player.getId())) {
-                // Faithful or traitor who hasn't finished the mini game — show mini game
-                if (mv.getMiniGameEvent() != null) {
-                    log.debug("Player {} routing to mini game phase", player.getName());
-                    return mv.getMiniGameEvent().getGameState();
-                }
-            } else {
-                // Traitor who has completed the mini game — auto-nav to murder vote
-                log.debug("Player {} completed mini game — routing to murder vote", player.getName());
-                MenuControl mc = new MenuControl();
-                mc.setMurderVoteEnabled(true);
-                mc.setTraitorChatEnabled(true);
-                mc.setCurrentPage("murder-vote");
-                return GameState.fromEvent(mc, gameObject, mv);
-            }
-        }
+
         if (currentEvent != null) {
             log.debug("Active event: {}", currentEvent.getClass().getSimpleName());
             return currentEvent.getGameState(player);

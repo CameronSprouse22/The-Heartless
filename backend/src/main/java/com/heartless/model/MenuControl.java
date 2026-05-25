@@ -21,6 +21,7 @@ public class MenuControl {
     private boolean roleRevealEnabled;
     private boolean sitRepEnabled;
     private boolean miniGameEnabled;
+    private boolean scuttlebuttEnabled;
     /**
      * The page/tab the player should currently be viewing.
      * When non-null the frontend navigates directly to this panel,
@@ -45,6 +46,7 @@ public class MenuControl {
         this.roleRevealEnabled = false;
         this.sitRepEnabled = false;
         this.miniGameEnabled = false;
+        this.scuttlebuttEnabled = false;
         this.currentPage = null;
     }
 
@@ -89,6 +91,9 @@ public class MenuControl {
 
     public boolean isMiniGameEnabled() { return miniGameEnabled; }
     public void setMiniGameEnabled(boolean miniGameEnabled) { this.miniGameEnabled = miniGameEnabled; }
+
+    public boolean isScuttlebuttEnabled() { return scuttlebuttEnabled; }
+    public void setScuttlebuttEnabled(boolean scuttlebuttEnabled) { this.scuttlebuttEnabled = scuttlebuttEnabled; }
 
     public String getCurrentPage() { return currentPage; }
     public void setCurrentPage(String currentPage) { this.currentPage = currentPage; }

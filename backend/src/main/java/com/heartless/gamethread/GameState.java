@@ -162,6 +162,8 @@ public class GameState {
                 "enabled", mc.isSitRepEnabled(), "visible", mc.isSitRepEnabled()));
         menuItems.add(Map.of("id", "mini-game", "label", "Mini Game",
                 "enabled", mc.isMiniGameEnabled(), "visible", mc.isMiniGameEnabled()));
+        menuItems.add(Map.of("id", "scuttlebutt", "label", "Scuttlebutt",
+                "enabled", mc.isScuttlebuttEnabled(), "visible", mc.isScuttlebuttEnabled()));
         return menuItems;
     }
 

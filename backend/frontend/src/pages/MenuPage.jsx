@@ -15,6 +15,7 @@ import IndividualChatPage from './IndividualChatPage';
 import DeadChatPage from './DeadChatPage';
 import SitRepPage from './SitRepPage';
 import MiniGamePage from './MiniGamePage';
+import ScuttlebuttPage from './ScuttlebuttPage';
 
 function formatTime(ms) {
   if (!ms || ms <= 0) return '0:00';
@@ -42,6 +43,7 @@ function MenuPage() {
   const dismissedEventEndTimeRef = useRef(null);
   const [activePanel, setActivePanel] = useState(null);
   const [panelTab, setPanelTab] = useState('event');
+  const [chatSubTab, setChatSubTab] = useState('all');
   // Track which eventEndTime we've already auto-navigated for (persisted across remounts)
   const getAutoNavDone = () => Number(sessionStorage.getItem('autoNavDoneEventEndTime') || 0);
   const setAutoNavDone = (t) => sessionStorage.setItem('autoNavDoneEventEndTime', String(t));
@@ -104,7 +106,7 @@ function MenuPage() {
       // user if they manually opened a different panel within the same event.
       const currentEndTime = menuData.eventEndTime || 0;
       const serverPage = menuData.currentPage || null;
-      const PANEL_IDS = ['banish-vote', 'murder-vote', 'reveal', 'identity-reveal', 'role-reveal', 'all-chat', 'traitor-chat', 'individual-chat', 'dead-chat', 'sitrep', 'mini-game'];
+      const PANEL_IDS = ['banish-vote', 'murder-vote', 'reveal', 'identity-reveal', 'role-reveal', 'all-chat', 'traitor-chat', 'individual-chat', 'dead-chat', 'sitrep', 'mini-game', 'scuttlebutt'];
       const NAV_IDS = { actions: true, 'game-options': true, 'game-logs': true };
 
       if (serverPage && currentEndTime && getAutoNavDone() !== currentEndTime) {
@@ -249,6 +251,7 @@ function MenuPage() {
       case 'role-reveal':     setActivePanel('role-reveal'); break;
       case 'sitrep':          setActivePanel('sitrep'); break;
       case 'mini-game':       setActivePanel('mini-game'); break;
+      case 'scuttlebutt':    setActivePanel('scuttlebutt'); break;
       case 'actions':        navigate(`/actions/${gameCode}`); break;
       case 'game-options':   navigate(`/gameOptions/${gameCode}/${encodeURIComponent(playerName)}`); break;
       case 'game-logs':      navigate(`/logs/${gameCode}`); break;
@@ -273,6 +276,7 @@ function MenuPage() {
     { id: 'game-logs',       label: '📜 Game Logs' },
     { id: 'sitrep',          label: '📋 Situation Report' },
     { id: 'mini-game',       label: '🎮 Mini Game' },
+    { id: 'scuttlebutt',     label: '🌊 Scuttlebutt' },
   ];
 
   return (
@@ -358,9 +362,9 @@ function MenuPage() {
 
         {MENU_ORDER.map(({ id, label }) => {
           const serverItem = menuItemMap[id];
-          // 'game' is not server-controlled — always visible. Everything else defaults to hidden if absent.
-          const visible = serverItem ? serverItem.visible : id === 'game';
-          const enabled = serverItem ? serverItem.enabled : id === 'game';
+          // Server controls all items — default to hidden if the server doesn't send an item.
+          const visible = serverItem ? serverItem.visible : false;
+          const enabled = serverItem ? serverItem.enabled : false;
           if (!visible) return null;
           const channelKey = channelKeyMap[id];
           const unread = channelKey ? getUnreadCount(channelKey) : 0;
@@ -421,22 +425,57 @@ function MenuPage() {
                 {activePanel === 'individual-chat' && <IndividualChatPage onClose={() => setActivePanel(null)} />}
                 {activePanel === 'dead-chat' && <DeadChatPage onClose={() => setActivePanel(null)} />}
                 {activePanel === 'sitrep' && <SitRepPage onClose={() => setActivePanel(null)} />}
-                {activePanel === 'mini-game' && <MiniGamePage onClose={() => setActivePanel(null)} />}
+                {activePanel === 'mini-game' && <MiniGamePage onClose={() => { setActivePanel(null); loadMenu(); }} />}
+                {activePanel === 'scuttlebutt' && <ScuttlebuttPage onClose={() => setActivePanel(null)} />}
               </>
             )}
 
-            {/* Chat tab — traitor chat for traitors, all chat otherwise */}
+            {/* Chat tab — sub-selector for All, Individual, Traitor (if traitor) */}
             {panelTab === 'chat' && (
-              menu?.isTraitor
-                ? <TraitorChatPage onClose={() => setActivePanel(null)} />
-                : <AllChatPage
-                    onClose={() => setActivePanel(null)}
-                    onReady={menu?.eventType === 'Banish Pre' ? async () => {
-                      await markEventReady(gameCode, playerCode).catch(() => {});
-                      await loadMenu();
-                    } : undefined}
-                    readyDone={menu?.eventType === 'Banish Pre' && menu?.mySelection?.submitPressed === true}
-                  />
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', gap: '0.4rem', padding: '0.4rem 0.6rem', background: '#1a1a1a', borderBottom: '1px solid #333', flexShrink: 0 }}>
+                  {[
+                    { id: 'all',        label: 'All Chat' },
+                    { id: 'individual', label: 'Individual' },
+                    ...(playerInfo?.isTraitor ? [{ id: 'traitor', label: 'Traitor Chat' }] : []),
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setChatSubTab(tab.id)}
+                      style={{
+                        padding: '0.3rem 0.7rem',
+                        background: chatSubTab === tab.id ? '#e65100' : '#2a2a2a',
+                        color: 'white',
+                        border: chatSubTab === tab.id ? 'none' : '1px solid #444',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontWeight: chatSubTab === tab.id ? 'bold' : 'normal',
+                        fontSize: '0.82rem',
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ flex: 1, overflow: 'auto' }}>
+                  {chatSubTab === 'all' && (
+                    <AllChatPage
+                      onClose={() => setActivePanel(null)}
+                      onReady={menu?.eventType === 'Banish Pre' ? async () => {
+                        await markEventReady(gameCode, playerCode).catch(() => {});
+                        await loadMenu();
+                      } : undefined}
+                      readyDone={menu?.eventType === 'Banish Pre' && menu?.mySelection?.submitPressed === true}
+                    />
+                  )}
+                  {chatSubTab === 'individual' && (
+                    menuItemMap['scuttlebutt']?.enabled
+                      ? <ScuttlebuttPage onClose={() => setActivePanel(null)} />
+                      : <IndividualChatPage onClose={() => setActivePanel(null)} />
+                  )}
+                  {chatSubTab === 'traitor' && playerInfo?.isTraitor && <TraitorChatPage onClose={() => setActivePanel(null)} />}
+                </div>
+              </div>
             )}
 
             {/* Status tab — situation report */}
