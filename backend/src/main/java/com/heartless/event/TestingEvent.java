@@ -41,14 +41,10 @@ public class TestingEvent implements EventObjectInterface {
 
     private MenuControl buildAllEnabledMenu() {
         MenuControl mc = new MenuControl();
-        mc.setTraitorChatEnabled(true);
         mc.setAllChatEnabled(true);
-        mc.setBanishVoteEnabled(true);
-        mc.setMurderVoteEnabled(true);
         mc.setIndividualChatEnabled(true);
-        mc.setActionsEnabled(true);
-        mc.setGameLogsEnabled(true);
-        mc.setGameOptionsEnabled(true);
+        mc.setTraitorChatEnabled(true);
+        mc.setStatusEnabled(true);
         return mc;
     }
 

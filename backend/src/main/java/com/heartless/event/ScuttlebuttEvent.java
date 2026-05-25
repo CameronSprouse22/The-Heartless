@@ -62,7 +62,8 @@ public class ScuttlebuttEvent implements EventObjectInterface {
     @Override
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
-        mc.setScuttlebuttEnabled(true);
+        mc.setIndividualChatEnabled(true);
+        mc.setStatusEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 

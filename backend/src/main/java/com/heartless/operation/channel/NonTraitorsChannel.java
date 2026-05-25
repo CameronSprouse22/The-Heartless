@@ -30,7 +30,8 @@ public class NonTraitorsChannel implements ChannelObjectInterface {
                 sender.getName(),
                 message,
                 "faithful",
-                System.currentTimeMillis()
+                System.currentTimeMillis(),
+                null
         ));
     }
 

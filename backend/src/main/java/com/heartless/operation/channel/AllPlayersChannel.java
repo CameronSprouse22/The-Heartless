@@ -24,13 +24,19 @@ public class AllPlayersChannel implements ChannelObjectInterface {
 
     @Override
     public void sendMessage(String message, Player sender) {
+        sendMessage(message, sender, null);
+    }
+
+    @Override
+    public void sendMessage(String message, Player sender, String recipientId) {
         messages.add(new ChatMessage(
                 UUID.randomUUID().toString(),
                 sender.getId(),
                 sender.getName(),
                 message,
                 "all",
-                System.currentTimeMillis()
+                System.currentTimeMillis(),
+                recipientId
         ));
     }
 

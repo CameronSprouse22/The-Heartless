@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Snapshot of the current game state,
- * containing the menu items and current event information.
+ * Snapshot of the current game state.
+ * The event is always served directly; menuItems carry only chat/status flags.
  */
 public class GameState {
 
@@ -23,25 +23,6 @@ public class GameState {
     private final String eventType;
     private final long eventEndTime;
     private final String startNotification;
-    private final String currentPage;
-
-    public GameState(List<Map<String, Object>> menuItems,
-                     String currentEvent,
-                     String gameStatus,
-                     int round,
-                     String statusString) {
-        this(menuItems, currentEvent, gameStatus, round, statusString, "", 0L, "", null);
-    }
-
-    public GameState(List<Map<String, Object>> menuItems,
-                     String currentEvent,
-                     String gameStatus,
-                     int round,
-                     String statusString,
-                     String eventType,
-                     long eventEndTime) {
-        this(menuItems, currentEvent, gameStatus, round, statusString, eventType, eventEndTime, "", null);
-    }
 
     public GameState(List<Map<String, Object>> menuItems,
                      String currentEvent,
@@ -51,18 +32,6 @@ public class GameState {
                      String eventType,
                      long eventEndTime,
                      String startNotification) {
-        this(menuItems, currentEvent, gameStatus, round, statusString, eventType, eventEndTime, startNotification, null);
-    }
-
-    public GameState(List<Map<String, Object>> menuItems,
-                     String currentEvent,
-                     String gameStatus,
-                     int round,
-                     String statusString,
-                     String eventType,
-                     long eventEndTime,
-                     String startNotification,
-                     String currentPage) {
         this.menuItems = menuItems;
         this.currentEvent = currentEvent;
         this.gameStatus = gameStatus;
@@ -71,7 +40,6 @@ public class GameState {
         this.eventType = eventType;
         this.eventEndTime = eventEndTime;
         this.startNotification = startNotification != null ? startNotification : "";
-        this.currentPage = currentPage;
     }
 
     public List<Map<String, Object>> getMenuItems() { return menuItems; }
@@ -82,7 +50,6 @@ public class GameState {
     public String getEventType() { return eventType; }
     public long getEventEndTime() { return eventEndTime; }
     public String getStartNotification() { return startNotification; }
-    public String getCurrentPage() { return currentPage; }
 
     public Map<String, Object> toMap() {
         Map<String, Object> result = new HashMap<>();
@@ -94,7 +61,11 @@ public class GameState {
         result.put("eventType", eventType);
         result.put("eventEndTime", eventEndTime);
         result.put("startNotification", startNotification);
-        if (currentPage != null) result.put("currentPage", currentPage);
+        // Flat flags for the frontend tab model
+        result.put("allChatEnabled", menuItems.stream().anyMatch(m -> "all-chat".equals(m.get("id")) && Boolean.TRUE.equals(m.get("enabled"))));
+        result.put("individualChatEnabled", menuItems.stream().anyMatch(m -> "individual-chat".equals(m.get("id")) && Boolean.TRUE.equals(m.get("enabled"))));
+        result.put("traitorChatEnabled", menuItems.stream().anyMatch(m -> "traitor-chat".equals(m.get("id")) && Boolean.TRUE.equals(m.get("enabled"))));
+        result.put("statusEnabled", menuItems.stream().anyMatch(m -> "status".equals(m.get("id")) && Boolean.TRUE.equals(m.get("enabled"))));
         return result;
     }
 
@@ -105,7 +76,7 @@ public class GameState {
         List<Map<String, Object>> menuItems = buildMenuItems(mc);
         String statusString = deriveStatusString(game);
         return new GameState(menuItems, game.getCurrentTask(),
-                game.getGameStatus().name(), game.getRound(), statusString, "", 0L);
+                game.getGameStatus().name(), game.getRound(), statusString, "", 0L, "");
     }
 
     /**
@@ -118,12 +89,14 @@ public class GameState {
         String eventType = deriveEventType(event);
         return new GameState(menuItems, game.getCurrentTask(),
                 game.getGameStatus().name(), game.getRound(), statusString,
-                eventType, event.getEventEndTime(), event.getStartNotification(),
-                mc.getCurrentPage());
+                eventType, event.getEventEndTime(), event.getStartNotification());
     }
 
     private static String deriveEventType(EventObjectInterface event) {
-        String name = event.getClass().getSimpleName()
+        String simple = event.getClass().getSimpleName();
+        // MiniGameEvent strips to "Mini" via the GameEvent$ rule — handle explicitly
+        if (simple.equals("MiniGameEvent")) return "Mini Game";
+        String name = simple
                 .replaceAll("GameEvent$", "")
                 .replaceAll("Event$", "");
         return name.replaceAll("([a-z])([A-Z])", "$1 $2");
@@ -131,39 +104,18 @@ public class GameState {
 
     /**
      * Build the menu items list from a MenuControl.
+     * Only chat and status access flags are included.
      */
     public static List<Map<String, Object>> buildMenuItems(MenuControl mc) {
         List<Map<String, Object>> menuItems = new ArrayList<>();
-        menuItems.add(Map.of("id", "traitor-chat", "label", "Traitor Chat",
-                "enabled", mc.isTraitorChatEnabled(), "visible", mc.isTraitorChatEnabled()));
         menuItems.add(Map.of("id", "all-chat", "label", "All Chat",
                 "enabled", mc.isAllChatEnabled(), "visible", mc.isAllChatEnabled()));
-        menuItems.add(Map.of("id", "banish-vote", "label", "Banish Vote",
-                "enabled", mc.isBanishVoteEnabled(), "visible", mc.isBanishVoteEnabled()));
-        menuItems.add(Map.of("id", "murder-vote", "label", "Murder Vote",
-                "enabled", mc.isMurderVoteEnabled(), "visible", mc.isMurderVoteEnabled()));
         menuItems.add(Map.of("id", "individual-chat", "label", "Individual Chat",
                 "enabled", mc.isIndividualChatEnabled(), "visible", mc.isIndividualChatEnabled()));
-        menuItems.add(Map.of("id", "dead-chat", "label", "Dead Chat",
-                "enabled", false, "visible", false));
-        menuItems.add(Map.of("id", "actions", "label", "Actions",
-                "enabled", mc.isActionsEnabled(), "visible", mc.isActionsEnabled()));
-        menuItems.add(Map.of("id", "game-logs", "label", "Game Logs",
-                "enabled", mc.isGameLogsEnabled(), "visible", mc.isGameLogsEnabled()));
-        menuItems.add(Map.of("id", "game-options", "label", "Game Options",
-                "enabled", mc.isGameOptionsEnabled(), "visible", mc.isGameOptionsEnabled()));
-        menuItems.add(Map.of("id", "reveal", "label", "Reveal",
-                "enabled", mc.isRevealEnabled(), "visible", mc.isRevealEnabled()));
-        menuItems.add(Map.of("id", "identity-reveal", "label", "Identity Reveal",
-                "enabled", mc.isIdentityRevealEnabled(), "visible", mc.isIdentityRevealEnabled()));
-        menuItems.add(Map.of("id", "role-reveal", "label", "Role Reveal",
-                "enabled", mc.isRoleRevealEnabled(), "visible", mc.isRoleRevealEnabled()));
-        menuItems.add(Map.of("id", "sitrep", "label", "Situation Report",
-                "enabled", mc.isSitRepEnabled(), "visible", mc.isSitRepEnabled()));
-        menuItems.add(Map.of("id", "mini-game", "label", "Mini Game",
-                "enabled", mc.isMiniGameEnabled(), "visible", mc.isMiniGameEnabled()));
-        menuItems.add(Map.of("id", "scuttlebutt", "label", "Scuttlebutt",
-                "enabled", mc.isScuttlebuttEnabled(), "visible", mc.isScuttlebuttEnabled()));
+        menuItems.add(Map.of("id", "traitor-chat", "label", "Traitor Chat",
+                "enabled", mc.isTraitorChatEnabled(), "visible", mc.isTraitorChatEnabled()));
+        menuItems.add(Map.of("id", "status", "label", "Status",
+                "enabled", mc.isStatusEnabled(), "visible", mc.isStatusEnabled()));
         return menuItems;
     }
 

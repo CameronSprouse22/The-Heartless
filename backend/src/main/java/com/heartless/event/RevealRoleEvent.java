@@ -78,8 +78,6 @@ public class RevealRoleEvent implements EventObjectInterface {
     @Override
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
-        mc.setRoleRevealEnabled(true);
-        mc.setCurrentPage("role-reveal");
         return GameState.fromEvent(mc, game, this);
     }
 

@@ -53,7 +53,7 @@ public class BanishPreEvent implements EventObjectInterface {
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setAllChatEnabled(true);
-        mc.setCurrentPage("all-chat");
+        mc.setStatusEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 

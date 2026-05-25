@@ -198,8 +198,8 @@ public class MurderVoteEvent implements EventObjectInterface {
             // Player has been promoted past the cover phase
             if (player.isTraitor()) {
                 MenuControl mc = new MenuControl();
-                mc.setMurderVoteEnabled(true);
                 mc.setTraitorChatEnabled(true);
+                mc.setStatusEnabled(true);
                 return GameState.fromEvent(mc, game, this);
             } else if (faithfulOnlyEvent != null) {
                 // Faithful finished cover event — hand off to the faithful-only event
@@ -213,9 +213,8 @@ public class MurderVoteEvent implements EventObjectInterface {
     @Override
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
-        mc.setMurderVoteEnabled(true);
         mc.setTraitorChatEnabled(true);
-        mc.setCurrentPage("murder-vote");
+        mc.setStatusEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 

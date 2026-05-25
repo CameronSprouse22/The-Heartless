@@ -40,7 +40,6 @@ public class LobbyEvent implements EventObjectInterface {
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
         mc.setAllChatEnabled(true);
-        mc.setGameOptionsEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 

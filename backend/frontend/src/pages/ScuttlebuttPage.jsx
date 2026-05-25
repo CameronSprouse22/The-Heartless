@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { getGameState, markEventReady } from '../services/api';
-import ChatWindow from '../components/ChatWindow';
+import { getGameState, getChatMessages, markEventReady } from '../services/api';
 
 function ScuttlebuttPage({ onClose }) {
   const { gameCode } = useParams();
   const playerCode = sessionStorage.getItem('playerCode') || localStorage.getItem('playerCode');
-  const [players, setPlayers] = useState([]);
-  const [selectedPlayerId, setSelectedPlayerId] = useState('');
+  const [myPlayerId, setMyPlayerId] = useState(null);
+  const [isTraitor, setIsTraitor] = useState(false);
   const [messagedIds, setMessagedIds] = useState(() => {
     try {
       const stored = sessionStorage.getItem(`scuttlebutt_messaged_${gameCode}`);
@@ -19,31 +18,48 @@ function ScuttlebuttPage({ onClose }) {
 
   const REQUIRED = 2;
 
+  // Load player identity once
   useEffect(() => {
-    async function loadPlayers() {
+    async function loadIdentity() {
       try {
         const state = await getGameState(gameCode, playerCode);
-        const myId = state.myPlayerId || playerCode;
-        const alive = (state.players || []).filter(p => !p.isDead && p.id !== myId);
-        setPlayers(alive);
-      } catch {
-        // ignore
-      }
+        setMyPlayerId(state.myPlayerId || null);
+        setIsTraitor(!!state.isTraitor);
+      } catch { /* ignore */ }
     }
-    loadPlayers();
+    loadIdentity();
   }, [gameCode, playerCode]);
 
-  const handleMessageSent = useCallback((recipientId) => {
-    setMessagedIds(prev => {
-      if (prev.has(recipientId)) return prev;
-      const next = new Set(prev);
-      next.add(recipientId);
-      try {
-        sessionStorage.setItem(`scuttlebutt_messaged_${gameCode}`, JSON.stringify([...next]));
-      } catch { /* ignore */ }
-      return next;
-    });
-  }, [gameCode]);
+  // Poll individual chat messages to track distinct recipients this player has messaged
+  const pollMessages = useCallback(async () => {
+    if (!myPlayerId) return;
+    try {
+      const result = await getChatMessages(gameCode, playerCode, 'individual', null);
+      const msgs = result.messages || [];
+      const newIds = new Set(
+        msgs
+          .filter(m => m.senderId === myPlayerId && m.recipientId)
+          .map(m => m.recipientId)
+      );
+      if (newIds.size > 0) {
+        setMessagedIds(prev => {
+          const merged = new Set([...prev, ...newIds]);
+          if (merged.size !== prev.size) {
+            try {
+              sessionStorage.setItem(`scuttlebutt_messaged_${gameCode}`, JSON.stringify([...merged]));
+            } catch { /* ignore */ }
+          }
+          return merged;
+        });
+      }
+    } catch { /* ignore */ }
+  }, [gameCode, playerCode, myPlayerId]);
+
+  useEffect(() => {
+    pollMessages();
+    const interval = setInterval(pollMessages, 3000);
+    return () => clearInterval(interval);
+  }, [pollMessages]);
 
   const handleComplete = async () => {
     if (completing || completed) return;
@@ -52,7 +68,6 @@ function ScuttlebuttPage({ onClose }) {
       await markEventReady(gameCode, playerCode);
       setCompleted(true);
     } catch {
-      // ignore — backend may already have transitioned
       setCompleted(true);
     } finally {
       setCompleting(false);
@@ -60,9 +75,7 @@ function ScuttlebuttPage({ onClose }) {
   };
 
   const progressCount = messagedIds.size;
-  const canComplete = progressCount >= REQUIRED;
-
-  const selectedPlayer = players.find(p => p.id === selectedPlayerId);
+  const canComplete = isTraitor || progressCount >= REQUIRED;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#121212' }}>
@@ -73,89 +86,57 @@ function ScuttlebuttPage({ onClose }) {
         color: '#81C784',
         fontWeight: 'bold',
         fontSize: '0.9rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         borderBottom: '1px solid #2e7d32',
       }}>
-        <span>🌊 Scuttlebutt</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{
-            fontSize: '0.8rem',
-            padding: '0.2rem 0.6rem',
-            borderRadius: '12px',
-            background: canComplete ? '#2e7d32' : '#333',
-            color: canComplete ? '#A5D6A7' : '#888',
-            fontWeight: 'bold',
-          }}>
-            {progressCount}/{REQUIRED} players messaged
-          </span>
-          <button
-            onClick={handleComplete}
-            disabled={!canComplete || completed || completing}
-            style={{
-              padding: '0.3rem 0.75rem',
-              background: completed ? '#1b5e20' : (canComplete ? '#43a047' : '#333'),
-              color: completed ? '#A5D6A7' : (canComplete ? 'white' : '#666'),
-              border: canComplete && !completed ? 'none' : '1px dashed #555',
-              borderRadius: '4px',
-              cursor: canComplete && !completed ? 'pointer' : 'not-allowed',
-              fontWeight: 'bold',
-              fontSize: '0.8rem',
-              opacity: completed ? 0.7 : 1,
-            }}
-          >
-            {completed ? 'Done ✓' : completing ? '...' : 'Complete'}
-          </button>
-        </div>
+        🌊 Scuttlebutt
       </div>
 
-      {/* Player selector */}
-      <div style={{ padding: '0.5rem', background: '#1a1a1a', borderBottom: '1px solid #333' }}>
-        <select
-          value={selectedPlayerId}
-          onChange={(e) => setSelectedPlayerId(e.target.value)}
+      {/* Body */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', gap: '1.5rem' }}>
+
+        {isTraitor ? (
+          <div style={{ textAlign: 'center', color: '#ef9a9a', fontSize: '0.9rem', maxWidth: '260px' }}>
+            Use the <strong>Individual Chat</strong> tab to coordinate if you wish.<br />
+            You may complete this phase at any time.
+          </div>
+        ) : (
+          <>
+            <div style={{ textAlign: 'center', color: '#aaa', fontSize: '0.9rem', maxWidth: '260px' }}>
+              Use the <strong>Individual Chat</strong> tab to privately message your fellow players.
+              Message at least <strong>{REQUIRED}</strong> different players before marking yourself ready.
+            </div>
+            {/* Progress */}
+            <div style={{
+              padding: '0.4rem 1.2rem',
+              borderRadius: '20px',
+              background: canComplete ? '#2e7d32' : '#333',
+              color: canComplete ? '#A5D6A7' : '#888',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+            }}>
+              {progressCount} / {REQUIRED} players messaged
+            </div>
+          </>
+        )}
+
+        {/* Complete button */}
+        <button
+          onClick={handleComplete}
+          disabled={!canComplete || completed || completing}
           style={{
-            width: '100%',
-            padding: '0.5rem',
-            background: '#2a2a2a',
-            color: '#e0e0e0',
-            border: '1px solid #444',
-            borderRadius: '4px',
-            fontSize: '0.9rem',
+            padding: '0.6rem 2rem',
+            background: completed ? '#1b5e20' : (canComplete ? '#43a047' : '#333'),
+            color: completed ? '#A5D6A7' : (canComplete ? 'white' : '#666'),
+            border: canComplete && !completed ? 'none' : '1px dashed #555',
+            borderRadius: '6px',
+            cursor: canComplete && !completed ? 'pointer' : 'not-allowed',
+            fontWeight: 'bold',
+            fontSize: '1rem',
+            opacity: completed ? 0.75 : 1,
           }}
         >
-          <option value="">Select a player to message…</option>
-          {players.map(p => (
-            <option key={p.id} value={p.id}>
-              {p.name}{messagedIds.has(p.id) ? ' ✓' : ''}
-            </option>
-          ))}
-        </select>
-        {selectedPlayer && messagedIds.has(selectedPlayerId) && (
-          <div style={{ fontSize: '0.75rem', color: '#81C784', marginTop: '0.25rem', paddingLeft: '0.25rem' }}>
-            ✓ You've messaged {selectedPlayer.name}
-          </div>
-        )}
-      </div>
-
-      {/* Chat area */}
-      <div style={{ flex: 1, overflow: 'hidden' }}>
-        {selectedPlayerId ? (
-          <ChatWindow
-            key={selectedPlayerId}
-            gameCode={gameCode}
-            playerCode={playerCode}
-            channel="individual"
-            recipientId={selectedPlayerId}
-            onMessageSent={handleMessageSent}
-          />
-        ) : (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#666', fontSize: '0.9rem' }}>
-            Select a player to start a private conversation.<br />
-            You must message {REQUIRED} different players to complete Scuttlebutt.
-          </div>
-        )}
+          {completed ? 'Done ✓' : completing ? '...' : 'Mark Ready'}
+        </button>
       </div>
     </div>
   );

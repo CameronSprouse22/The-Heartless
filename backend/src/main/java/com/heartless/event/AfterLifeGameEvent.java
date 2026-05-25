@@ -3,15 +3,15 @@ package com.heartless.event;
 import com.heartless.config.GameConfigurations;
 import com.heartless.gamethread.GameState;
 import com.heartless.model.GameObject;
+import com.heartless.model.MenuControl;
 import com.heartless.model.UserSelectionsState;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Pseudo-event returned for dead players.
- * Enables only the Dead Chat and Game Logs menu items.
+ * Enables the Dead Chat tab via the allChatEnabled flag so the frontend
+ * can route to DeadChatPage for After Life events.
  */
 public class AfterLifeGameEvent implements EventObjectInterface {
 
@@ -35,29 +35,9 @@ public class AfterLifeGameEvent implements EventObjectInterface {
 
     @Override
     public GameState getGameState() {
-        List<Map<String, Object>> menuItems = new ArrayList<>();
-        menuItems.add(Map.of("id", "traitor-chat",   "label", "Traitor Chat",   "enabled", false, "visible", false));
-        menuItems.add(Map.of("id", "all-chat",        "label", "All Chat",        "enabled", false, "visible", false));
-        menuItems.add(Map.of("id", "banish-vote",     "label", "Banish Vote",     "enabled", false, "visible", false));
-        menuItems.add(Map.of("id", "murder-vote",     "label", "Murder Vote",     "enabled", false, "visible", false));
-        menuItems.add(Map.of("id", "individual-chat", "label", "Individual Chat", "enabled", false, "visible", false));
-        menuItems.add(Map.of("id", "dead-chat",       "label", "Dead Chat",       "enabled", true,  "visible", true));
-        menuItems.add(Map.of("id", "actions",         "label", "Actions",         "enabled", false, "visible", false));
-        menuItems.add(Map.of("id", "game-logs",       "label", "Game Logs",       "enabled", true,  "visible", true));
-        menuItems.add(Map.of("id", "game-options",    "label", "Game Options",    "enabled", false, "visible", false));
-        return new GameState(menuItems, game.getCurrentTask(),
-                game.getGameStatus().name(), game.getRound(), deriveStatus(),
-                "After Life", getEventEndTime());
-    }
-
-    private String deriveStatus() {
-        switch (game.getGameStatus()) {
-            case INIT: return "Lobby";
-            case START: return "Round " + game.getRound();
-            case END:   return "Final Round";
-            case OVER:  return "Game Over";
-            default:    return game.getGameStatus().name();
-        }
+        MenuControl mc = new MenuControl();
+        mc.setAllChatEnabled(true);  // frontend routes to DeadChatPage for After Life events
+        return GameState.fromEvent(mc, game, this);
     }
 
     @Override

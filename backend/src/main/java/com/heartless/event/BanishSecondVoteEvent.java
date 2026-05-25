@@ -77,8 +77,8 @@ public class BanishSecondVoteEvent implements EventObjectInterface {
     @Override
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
-        mc.setBanishVoteEnabled(true);
-        mc.setCurrentPage("banish-vote");
+        mc.setAllChatEnabled(true);
+        mc.setStatusEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 

@@ -46,7 +46,7 @@ public class ChatService {
             throw new IllegalArgumentException("Cannot send an individual message to yourself");
         }
 
-        channel.sendMessage(text, sender);
+        channel.sendMessage(text, sender, recipientId);
 
         List<ChannelObjectInterface.ChatMessage> msgs = channel.getMessages();
         ChannelObjectInterface.ChatMessage last = msgs.get(msgs.size() - 1);
@@ -97,6 +97,7 @@ public class ChatService {
         map.put("senderName", m.senderName());
         map.put("text", m.text());
         map.put("timestamp", m.timestamp());
+        if (m.recipientId() != null) map.put("recipientId", m.recipientId());
         return map;
     }
 

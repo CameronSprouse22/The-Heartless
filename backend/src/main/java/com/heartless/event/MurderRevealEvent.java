@@ -46,8 +46,7 @@ public class MurderRevealEvent implements EventObjectInterface {
     @Override
     public GameState getGameState() {
         MenuControl mc = new MenuControl();
-        mc.setRevealEnabled(true);
-        mc.setCurrentPage("reveal");
+        mc.setStatusEnabled(true);
         return GameState.fromEvent(mc, game, this);
     }
 

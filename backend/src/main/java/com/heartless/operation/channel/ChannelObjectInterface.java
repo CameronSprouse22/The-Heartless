@@ -14,10 +14,16 @@ public interface ChannelObjectInterface {
 
     void sendMessage(String message, Player sender);
 
+    /** Overload that carries an optional recipient (used for individual channel). */
+    default void sendMessage(String message, Player sender, String recipientId) {
+        sendMessage(message, sender);
+    }
+
     List<ChatMessage> getMessages();
 
     /**
      * Simple message record for channel communication.
+     * {@code recipientId} is non-null only for the individual channel.
      */
     record ChatMessage(
             String messageId,
@@ -25,6 +31,7 @@ public interface ChannelObjectInterface {
             String senderName,
             String text,
             String channel,
-            long timestamp
+            long timestamp,
+            String recipientId
     ) {}
 }

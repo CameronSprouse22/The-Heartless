@@ -30,7 +30,8 @@ public class TraitorsChannel implements ChannelObjectInterface {
                 sender.getName(),
                 message,
                 "traitors",
-                System.currentTimeMillis()
+                System.currentTimeMillis(),
+                null
         ));
     }
 

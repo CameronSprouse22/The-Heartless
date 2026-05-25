@@ -30,7 +30,8 @@ public class DeadPlayersChannel implements ChannelObjectInterface {
                 sender.getName(),
                 message,
                 "dead",
-                System.currentTimeMillis()
+                System.currentTimeMillis(),
+                null
         ));
     }
 
