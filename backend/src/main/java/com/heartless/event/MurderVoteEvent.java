@@ -25,6 +25,7 @@ public class MurderVoteEvent implements EventObjectInterface {
     private volatile boolean murderApplied = false;
     private VotingService votingService;
     private String gameCode;
+    private MiniGameEvent miniGameEvent = null;
 
     public MurderVoteEvent(GameObject game) {
         this.game = game;
@@ -41,7 +42,12 @@ public class MurderVoteEvent implements EventObjectInterface {
     }
 
     public EventObjectInterface getCoverEvent()  { return coverEvent; }
+    public MiniGameEvent getMiniGameEvent()      { return miniGameEvent; }
+    public void setMiniGameEvent(MiniGameEvent miniGameEvent) { this.miniGameEvent = miniGameEvent; }
     public boolean isMiniGameDone()              { return miniGameDone; }
+
+    @Override
+    public boolean hasSubEvents() { return true; }
     public boolean hasPlayerCompletedMiniGame(String playerId) { return miniGameCompletedPlayerIds.contains(playerId); }
 
     /** Attach the voting service so murder results can be applied when all traitors vote. */
@@ -64,8 +70,13 @@ public class MurderVoteEvent implements EventObjectInterface {
             coverEvent.checkStartConditions();
             coverEvent.onStart(); // inits selection states for ALL active players
             // No pre-promotions — everyone starts the cover event
+        } else if (miniGameEvent != null) {
+            // Mini game is shown to ALL players (traitors and faithful alike).
+            // Traitors transition to the murder vote only after completing it.
+            miniGameEvent.setOverrideEndTime(getEventEndTime());
+            miniGameEvent.checkStartConditions(); // inits selection states for all active players
         } else {
-            // No cover event — start faithfulOnlyEvent (if any) for faithful;
+            // No cover event and no mini game — start faithfulOnlyEvent (if any) for faithful;
             // traitors skip straight to murder vote
             if (faithfulOnlyEvent != null) {
                 faithfulOnlyEvent.setOverrideEndTime(getEventEndTime());
@@ -111,9 +122,9 @@ public class MurderVoteEvent implements EventObjectInterface {
         // (Java's allMatch on an empty stream returns true, which would trigger a false-positive)
         if (active.isEmpty()) return false;
 
-        // Promote any player who just finished the cover event to their next phase:
+        // Promote any player who just finished the cover event or mini game to their next phase:
         //   traitors -> murder vote, faithful -> faithfulOnlyEvent (or done if none)
-        if (coverEvent != null) {
+        if (coverEvent != null || miniGameEvent != null) {
             active.stream()
                     .filter(p -> !miniGameCompletedPlayerIds.contains(p.getId()))
                     .forEach(p -> {
@@ -133,8 +144,8 @@ public class MurderVoteEvent implements EventObjectInterface {
                         // Faithful must complete the faithfulOnly task (submitPressed after promotion)
                         UserSelectionsState sel = game.getSelectionState(p.getId());
                         return sel != null && sel.isSubmitPressed();
-                    } else if (coverEvent != null) {
-                        // No faithfulOnly — faithful are done once they finish the cover event
+                    } else if (coverEvent != null || miniGameEvent != null) {
+                        // Faithful are done once they finish the cover event / mini game
                         return miniGameCompletedPlayerIds.contains(p.getId());
                     } else {
                         // No tasks for faithful — they are immediately done
@@ -183,26 +194,28 @@ public class MurderVoteEvent implements EventObjectInterface {
      * - Traitors promoted past that phase: see murder vote + traitor chat
      */
     @Override
-    public GameState getGameState(Player player) {
+    public GameState getGameEvent(Player player) {
         if (!miniGameCompletedPlayerIds.contains(player.getId())) {
-            // Player has not yet been promoted past the cover phase
+            // Player has not yet completed their pre-vote task
             if (coverEvent != null) {
-                // Everyone does the cover event first
                 return coverEvent.getGameState(player);
+            } else if (miniGameEvent != null) {
+                // Both faithful and traitors do the mini game before proceeding
+                return miniGameEvent.getGameState();
             } else if (!player.isTraitor() && faithfulOnlyEvent != null) {
                 // No cover event — faithful go straight to their dedicated event
                 return faithfulOnlyEvent.getGameState(player);
             }
-            // Traitors without a cover event are pre-added to miniGameCompletedPlayerIds at onStart()
+            // Traitors with no pre-vote task are pre-added to miniGameCompletedPlayerIds at onStart()
         } else {
-            // Player has been promoted past the cover phase
+            // Player has completed their pre-vote task
             if (player.isTraitor()) {
                 MenuControl mc = new MenuControl();
                 mc.setTraitorChatEnabled(true);
                 mc.setStatusEnabled(true);
                 return GameState.fromEvent(mc, game, this);
             } else if (faithfulOnlyEvent != null) {
-                // Faithful finished cover event — hand off to the faithful-only event
+                // Faithful finished cover/mini-game — hand off to the faithful-only event
                 return faithfulOnlyEvent.getGameState(player);
             }
         }

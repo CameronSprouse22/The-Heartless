@@ -322,24 +322,8 @@ public class GameThread {
             log.debug("Player {} is dead — returning AfterLifeGameEvent state", player.getName());
             return new AfterLifeGameEvent(gameObject).getGameState();
         }
-        // Per-player routing for MurderVoteEvent:
-        // - Faithful always see the mini game
-        // - Traitors see the mini game until they submit it, then auto-nav to murder vote
-        if (currentEvent instanceof MurderVoteEvent mv) {
-            if (!player.isTraitor() || !mv.hasPlayerCompletedMiniGame(player.getId())) {
-                // Faithful or traitor who hasn't finished the mini game — show mini game
-                if (mv.getMiniGameEvent() != null) {
-                    log.debug("Player {} routing to mini game phase", player.getName());
-                    return mv.getMiniGameEvent().getGameState();
-                }
-            } else {
-                // Traitor who has completed the mini game — auto-nav to murder vote
-                log.debug("Player {} completed mini game — routing to murder vote", player.getName());
-                MenuControl mc = new MenuControl();
-                mc.setTraitorChatEnabled(true);
-                mc.setStatusEnabled(true);
-                return GameState.fromEvent(mc, gameObject, mv);
-            }
+        if (currentEvent.hasSubEvents()) {
+            return currentEvent.getGameEvent(player);
         }
         if (currentEvent != null) {
             log.debug("Active event: {}", currentEvent.getClass().getSimpleName());

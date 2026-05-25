@@ -114,4 +114,16 @@ public interface EventObjectInterface {
      * Default is false — override in reveal events visible to all players.
      */
     default boolean isShowToDeadPlayers() { return false; }
+
+    /**
+     * Returns true if this event contains sub-events that require per-player routing.
+     * Default is false — override in composite events like MurderVoteEvent.
+     */
+    default boolean hasSubEvents() { return false; }
+
+    /**
+     * Returns a player-specific GameState routed through this event's sub-event logic.
+     * Default delegates to {@link #getGameState(Player)}.
+     */
+    default GameState getGameEvent(Player player) { return getGameState(player); }
 }
